@@ -54,8 +54,12 @@ Cloud (Kubernetes)
 ### Implementação
 
 MVP em até 6 meses
-Escala municipal em até 24 meses
-Expansão regional em até 36 meses
+
+Escala municipal em até 2 meses
+
+Expansão regional em até 3 meses
+
+Expansão nacional em até 1 meses
 
 ---
 
