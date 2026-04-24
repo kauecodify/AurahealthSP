@@ -6,6 +6,10 @@
 > **Sistema Operacional da Saúde Pública e Privada**  
 > *Integrando atendimento, logística, inteligência artificial e transparência em tempo real*
 
+### MVP
+
+[https://aurahealth-sp-svc6-git-main-kauecaires1-8955s-projects.vercel.app]
+
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow?style=for-the-badge" alt="Status">
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License">
