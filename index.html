@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AuraHealthSP - Sistema Operacional da Saúde Pública de São Paulo">
+  <meta name="keywords" content="saúde, SUS, triagem, IA, logística, blockchain, São Paulo, ambulância, mapa">
+  <meta name="author" content="AuraHealthSP Team">
+  <meta name="theme-color" content="#0ea5a5">
+  
+  <title>AuraHealthSP | Saúde Integrada em Tempo Real</title>
+  
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+  
+  <!-- Scripts (CDNs) -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="images/favicon.png">
+  
+  <style>
+    /* ===== MAPA EM DESTAQUE ===== */
+    #heroMap {
+      position: relative;
+      height: 50vh;
+      min-height: 350px;
+      max-height: 600px;
+      width: 100%;
+      border-bottom: 1px solid var(--border);
+      z-index: 1;
+    }
+    
+    #heroMap .leaflet-container {
+      height: 100%;
+      width: 100%;
+      border-radius: 0;
+    }
+    
+    /* Controles flutuantes sobre o mapa */
+    .map-controls {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      right: 1rem;
+      z-index: 1000;
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      pointer-events: none;
+    }
+    
+    .map-controls > * {
+      pointer-events: auto;
+    }
+    
+    .search-card {
+      background: white;
+      padding: 1rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      gap: 0.5rem;
+      flex: 1;
+      max-width: 600px;
+      align-items: center;
+    }
+    
+    .search-card input {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      min-width: 0;
+    }
+    
+    .search-card button {
+      white-space: nowrap;
+      padding: 0.75rem 1.25rem;
+    }
+    
+    .map-legend {
+      position: absolute;
+      bottom: 1rem;
+      right: 1rem;
+      background: white;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      font-size: 0.85rem;
+      z-index: 1000;
+      max-width: 250px;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.25rem 0;
+    }
+    
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    
+    .legend-dot.ambulance { background: #3b82f6; animation: pulse 2s infinite; }
+    .legend-dot.hospital-available { background: #22c55e; }
+    .legend-dot.hospital-busy { background: #f59e0b; }
+    .legend-dot.hospital-critical { background: #ef4444; }
+    .legend-dot.user { background: #8b5cf6; border: 2px solid white; }
+    
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+    }
+    
+    /* Badge de status flutuante */
+    .floating-status {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: white;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+      font-size: 0.85rem;
+      font-weight: 500;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .floating-status.online { color: #166534; }
+    .floating-status .dot {
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    /* Responsivo */
+    @media (max-width: 768px) {
+      #heroMap { height: 40vh; }
+      .search-card { flex-direction: column; }
+      .search-card input { width: 100%; }
+      .map-controls { flex-direction: column; align-items: stretch; }
+      .map-legend { bottom: auto; top: auto; left: 1rem; right: auto; max-width: 200px; }
+    }
+    
+    /* Animação de ambulância no mapa */
+    @keyframes drive {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(2px, -1px) rotate(2deg); }
+      50% { transform: translate(0, 0) rotate(0deg); }
+      75% { transform: translate(-2px, 1px) rotate(-2deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+    
+    .ambulance-icon {
+      animation: drive 3s ease-in-out infinite;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    }
+    
+    /* Marker pulsing para usuário */
+    .user-marker {
+      animation: markerPulse 2s infinite;
+    }
+    
+    @keyframes markerPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    
+    <!-- ==================== HEADER ==================== -->
+    <header class="header">
+      <div class="logo">
+        <img src="images/prefeitura.png" alt="Prefeitura de São Paulo" onerror="this.style.display='none'"/>
+        <span class="logo-text">AuraHealth<span>SP</span></span>
+      </div>
+      
+      <nav class="nav" role="navigation" aria-label="Navegação principal">
+        <button class="nav-btn active" data-view="dashboard">📊 Dashboard</button>
+        <button class="nav-btn" data-view="triage">🤖 Triagem IA</button>
+        <button class="nav-btn" data-view="logistics">🚑 Logística</button>
+        <button class="nav-btn" data-view="audit">🔗 Auditoria</button>
+      </nav>
+      
+      <div class="user-panel">
+        <span class="status-badge online" id="systemStatus">● Online</span>
+        <button id="emergencyBtn" class="emergency-btn">🚨 Emergência</button>
+      </div>
+    </header>
+
+    <!-- ==================== HERO MAP (SEMPRE VISÍVEL) ==================== -->
+    <section id="heroMap" aria-label="Mapa em tempo real de ambulâncias e hospitais">
+      <!-- Controles flutuantes -->
+      <div class="map-controls">
+        <div class="search-card">
+          <input type="text" id="heroCepInput" placeholder="🔍 Digite seu CEP para encontrar o hospital mais próximo" maxlength="9" aria-label="Buscar por CEP" />
+          <button id="heroSearchCep" class="action-btn">Buscar</button>
+          <button id="heroUseLocation" class="action-btn secondary" title="Usar minha localização">📍</button>
+        </div>
+      </div>
+      
+      <!-- Status flutuante -->
+      <div class="floating-status online">
+        <span class="dot"></span>
+        <span id="liveStatus">Atualizando em tempo real</span>
+      </div>
+      
+      <!-- Legenda -->
+      <div class="map-legend">
+        <strong>Legenda</strong>
+        <div class="legend-item"><span class="legend-dot ambulance"></span> 🚑 Ambulância em movimento</div>
+        <div class="legend-item"><span class="legend-dot hospital-available"></span> 🏥 Vagas disponíveis</div>
+        <div class="legend-item"><span class="legend-dot hospital-busy"></span> 🏥 Capacidade limitada</div>
+        <div class="legend-item"><span class="legend-dot hospital-critical"></span> 🏥 Crítico</div>
+        <div class="legend-item"><span class="legend-dot user"></span> 📍 Sua localização</div>
+      </div>
+    </section>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <main class="main-content" role="main">
+      
+      <!-- ===== Dashboard View ===== -->
+      <section id="dashboard" class="view active">
+        <div class="stats-grid">
+          <div class="stat-card pulse">
+            <h3>👥 Pacientes em Espera</h3>
+            <span class="stat-value" id="waitingCount">24</span>
+            <span class="stat-delta down">▼ 12% vs ontem</span>
+          </div>
+          <div class="stat-card">
+            <h3>🛏️ Vagas Disponíveis</h3>
+            <span class="stat-value" id="bedsAvailable">18</span>
+            <span class="stat-delta up">▲ 3 novas</span>
+          </div>
+          <div class="stat-card">
+            <h3>⏱️ Tempo Médio Atendimento</h3>
+            <span class="stat-value" id="avgTime">8.2min</span>
+            <span class="stat-delta down">▼ 34% melhoria</span>
+          </div>
+          <div class="stat-card">
+            <h3>🔗 Transações Auditadas</h3>
+            <span class="stat-value" id="txCount">1.2k</span>
+            <span class="stat-delta up">▲ Hoje</span>
+          </div>
+        </div>
+
+        <div class="panels-grid">
+          <div class="panel triage-panel">
+            <h4>🤖 Triagem em Tempo Real</h4>
+            <div id="triageQueue" class="queue-list"></div>
+            <form id="newPatientForm" class="quick-add">
+              <input type="text" id="patientName" placeholder="Nome do paciente" required />
+              <input type="text" id="patientSymptoms" placeholder="Sintomas" required />
+              <input type="number" id="patientAge" placeholder="Idade" min="0" max="120" required />
+              <button type="submit">▶ Iniciar Triagem IA</button>
+            </form>
+          </div>
+
+          <div class="panel capacity-panel">
+            <h4>🏥 Capacidade Hospitalar</h4>
+            <div id="hospitalsMap" class="map-container"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Triage View ===== -->
+      <section id="triage" class="view">
+        <div class="triage-interface">
+          <div class="ai-analysis">
+            <h4>🧠 Análise de IA - Priorização</h4>
+            <div class="analysis-steps">
+              <div class="step completed">✓ Extração de sintomas</div>
+              <div class="step completed">✓ Cross-reference com protocolos</div>
+              <div class="step active">● Cálculo de risco (ESC Score)</div>
+              <div class="step pending">○ Recomendação de destino</div>
+            </div>
+            <div class="risk-meter">
+              <label>Nível de Risco Estimado</label>
+              <div class="meter-bar"><div class="meter-fill" id="riskFill"></div></div>
+              <span id="riskLabel">Aguardando dados...</span>
+            </div>
+            <div id="aiRecommendation" class="recommendation-box hidden">
+              <h5>🎯 Recomendação da IA</h5>
+              <p id="recDestination"></p>
+              <p id="recTransport"></p>
+              <p id="recETA"></p>
+            </div>
+          </div>
+          <div class="patient-card" id="activePatientCard">
+            <h5 id="cardName">Selecione um paciente</h5>
+            <p id="cardSymptoms">-</p>
+            <div class="priority-badge" id="cardPriority">-</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Logistics View ===== -->
+      <section id="logistics" class="view">
+        <div class="supply-chain-dashboard">
+          <h4>🚑 Logística Detalhada</h4>
+          <div class="route-planner">
+            <div class="route-step">
+              <strong>Origem</strong>
+              <select id="originSelect">
+                <option value="-23.555,-46.655">UBS Vila Mariana</option>
+                <option value="-23.540,-46.630">UPA Ipiranga</option>
+                <option value="-23.533,-46.589">Domicílio (SAMU)</option>
+              </select>
+            </div>
+            <div class="route-step">
+              <strong>Destino</strong>
+              <select id="destinationSelect">
+                <option value="hc">Hospital das Clínicas</option>
+                <option value="santa">Santa Casa</option>
+                <option value="upa-zl">UPA Zona Leste</option>
+              </select>
+            </div>
+            <div class="route-step">
+              <strong>Urgência</strong>
+              <select id="urgencySelect">
+                <option value="normal">Normal</option>
+                <option value="high">Alta</option>
+                <option value="critical">Crítica 🚨</option>
+              </select>
+            </div>
+            <button id="calculateRoute" class="action-btn">🔍 Calcular Rota</button>
+          </div>
+          <div id="routeResult" class="route-result hidden">
+            <div class="route-info">
+              <span>⏱️ <strong id="eta">12 min</strong></span>
+              <span>🚑 <strong id="vehicle">Ambulância #A-204</strong></span>
+              <span>🛣️ <strong id="distance">4.2 km</strong></span>
+            </div>
+            <div class="supply-check">
+              <h5>✅ Recursos Confirmados:</h5>
+              <ul id="suppliesList">
+                <li>✓ Leitos: <span id="bedsCount">3</span></li>
+                <li>✓ UTI: <span id="icuCount">1</span></li>
+                <li>✓ Oxigênio: <span id="o2Level">98%</span></li>
+                <li>✓ Equipe: <span id="teamStatus">Disponível</span></li>
+              </ul>
+            </div>
+            <button id="dispatchVehicle" class="action-btn primary">🚀 Despachar Veículo</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Audit View ===== -->
+      <section id="audit" class="view">
+        <div class="audit-dashboard">
+          <div class="block-explorer">
+            <div class="block-header">
+              <h4>🔗 Auditoria Blockchain</h4>
+              <button id="refreshBlocks">🔄 Atualizar</button>
+            </div>
+            <div id="blocksList" class="blocks-list"></div>
+          </div>
+          <div class="transaction-search">
+            <input type="text" id="txSearch" placeholder="Buscar por ID, paciente ou tipo..." />
+            <button id="searchTx">🔍 Buscar</button>
+          </div>
+          <div id="txDetails" class="tx-details hidden"></div>
+          <div class="chain-stats">
+            <h5>📊 Estatísticas da Chain</h5>
+            <div id="chainStats"></div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ==================== FOOTER ==================== -->
+    <footer class="footer">
+      <div class="footer-container">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <img src="images/prefeitura.png" alt="Prefeitura" onerror="this.style.display='none'"/>
+            <strong>AuraHealth<span>SP</span></strong>
+          </div>
+          <p class="footer-tagline">Sistema Operacional da Saúde de São Paulo.<br>Integrando atendimento em tempo real.</p>
+          <div class="footer-badges">
+            <span class="badge lgpd">🔒 LGPD</span>
+            <span class="badge fhir">🏥 FHIR</span>
+            <span class="badge opensource">💚 Open Source</span>
+          </div>
+        </div>
+        <div class="footer-links">
+          <h5>🔗 Links</h5>
+          <ul>
+            <li><a href="#dashboard" data-nav-link>Dashboard</a></li>
+            <li><a href="#triage" data-nav-link>Triagem IA</a></li>
+            <li><a href="#logistics" data-nav-link>Logística</a></li>
+            <li><a href="#audit" data-nav-link>Auditoria</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h5>⚙️ Recursos</h5>
+          <ul>
+            <li><a href="#" id="footerExportData">📥 Exportar Dados</a></li>
+            <li><a href="#" id="footerApiDocs">🔌 API</a></li>
+            <li><a href="#" id="footerChangelog">📋 Changelog</a></li>
+          </ul>
+        </div>
+        <div class="footer-links">
+          <h5>🆘 Suporte</h5>
+          <ul>
+            <li><a href="mailto:suporte@aurahealth.sp.gov.br">✉️ suporte@...</a></li>
+            <li><a href="tel:156">📞 156 - Central SP</a></li>
+            <li><a href="#" id="footerFeedback">💬 Feedback</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-copyright">
+          <p>&copy; <span id="currentYear"></span> Prefeitura de São Paulo • 
+            <a href="#" id="footerTerms">Termos</a> • 
+            <a href="#" id="footerPrivacy">Privacidade</a>
+          </p>
+          <p class="footer-disclaimer"><small>⚠️ Para emergências reais, disque 192 (SAMU) ou 193.</small></p>
+        </div>
+        <div class="footer-social">
+          <a href="https://github.com/kauecodify/AurahealthSP" target="_blank" class="social-icon" aria-label="GitHub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ==================== MODALS ==================== -->
+    <div id="emergencyModal" class="modal hidden">
+      <div class="modal-content">
+        <h3>🚨 Protocolo de Emergência Ativado</h3>
+        <p>Todos os recursos críticos foram priorizados.</p>
+        <div class="emergency-actions">
+          <button id="dispatchSamu" class="action-btn primary">🚑 Acionar SAMU</button>
+          <button id="alertHospitals" class="action-btn secondary">📡 Alertar Hospitais</button>
+          <button id="closeEmergency" class="action-btn ghost">✕ Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="feedbackModal" class="modal hidden">
+      <div class="modal-content">
+        <h3>💬 Enviar Feedback</h3>
+        <form id="feedbackForm">
+          <select id="feedbackType" required>
+            <option value="">Tipo...</option>
+            <option value="bug">🐛 Bug</option>
+            <option value="feature">💡 Sugestão</option>
+            <option value="other">📝 Outro</option>
+          </select>
+          <textarea id="feedbackMessage" rows="4" placeholder="Descreva..." required></textarea>
+          <input type="email" id="feedbackEmail" placeholder="E-mail (opcional)" />
+          <div class="modal-actions">
+            <button type="submit" class="action-btn primary">Enviar</button>
+            <button type="button" id="closeFeedback" class="action-btn ghost">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+    <div id="loadingOverlay" class="loading-overlay hidden"><div class="loading-spinner"></div></div>
+
+  </div>
+
+  <!-- ==================== APP LOGIC ==================== -->
+  <script>
+    // ===== CONFIGURAÇÃO INICIAL =====
+    const CONFIG = {
+      mapCenter: [-23.5505, -46.6333], // São Paulo
+      mapZoom: 12,
+      hospitals: [
+        { id: 'hc', name: 'Hospital das Clínicas', lat: -23.5614, lng: -46.6722, beds: 42, icu: 8, o2: 98, type: 'HOSPITAL' },
+        { id: 'santa', name: 'Santa Casa', lat: -23.5453, lng: -46.6425, beds: 18, icu: 3, o2: 87, type: 'HOSPITAL' },
+        { id: 'upa-zl', name: 'UPA Zona Leste', lat: -23.5333, lng: -46.5890, beds: 5, icu: 1, o2: 72, type: 'UPA' }
+      ],
+      ambulances: [
+        { id: 'A-204', type: 'advanced', lat: -23.5550, lng: -46.6550, status: 'available', route: null },
+        { id: 'A-118', type: 'basic', lat: -23.5400, lng: -46.6300, status: 'busy', route: null },
+        { id: 'A-301', type: 'advanced', lat: -23.5600, lng: -46.6700, status: 'available', route: null }
+      ]
+    };
+
+    // ===== ESTADO GLOBAL =====
+    const state = {
+      map: null,
+      userMarker: null,
+      hospitalMarkers: [],
+      ambulanceMarkers: [],
+      ambulanceAnimations: [],
+      routeLine: null,
+      userLocation: null
+    };
+
+    // ===== INICIALIZAÇÃO =====
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Set year
+      document.getElementById('currentYear').textContent = new Date().getFullYear();
+      
+      // Initialize map immediately
+      initHeroMap();
+      
+      // Setup navigation
+      setupNavigation();
+      
+      // Setup event listeners
+      setupEventListeners();
+      
+      // Start ambulance animation loop
+      startAmbulanceAnimations();
+      
+      // Try auto-geolocate
+      tryAutoGeolocate();
+      
+      // Load initial data
+      loadDashboard();
+      loadBlockchainBlocks();
+      
+      // Connect WebSocket
+      if (typeof io !== 'undefined') {
+        window.socket = io();
+        setupSocketListeners();
+      }
+    });
+
+    // ===== MAPA HERO =====
+    function initHeroMap() {
+      // Create map
+      state.map = L.map('heroMap').setView(CONFIG.mapCenter, CONFIG.mapZoom);
+      
+      // Add tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>',
+        maxZoom: 19
+      }).addTo(state.map);
+      
+      // Add hospitals
+      addHospitalMarkers();
+      
+      // Add ambulances
+      addAmbulanceMarkers();
+      
+      // Add click handler for map
+      state.map.on('click', (e) => {
+        if (state.userMarker) state.map.removeLayer(state.userMarker);
+        state.userLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
+        addUserMarker(state.userLocation);
+        findAndHighlightNearestHospital(state.userLocation);
+      });
+      
+      // Resize map on window resize
+      window.addEventListener('resize', () => {
+        if (state.map) state.map.invalidateSize();
+      });
+    }
+
+    // ===== MARCADORES DE HOSPITAIS =====
+    function addHospitalMarkers() {
+      state.hospitalMarkers = CONFIG.hospitals.map(h => {
+        const status = h.beds > 20 ? 'available' : h.beds > 5 ? 'busy' : 'critical';
+        const color = status === 'available' ? '#22c55e' : status === 'busy' ? '#f59e0b' : '#ef4444';
+        
+        const icon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background:${color};width:28px;height:28px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px">🏥</div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
+
+        const marker = L.marker([h.lat, h.lng], { icon }).addTo(state.map);
+        
+        marker.bindPopup(`
+          <div style="font-family:Inter,sans-serif">
+            <strong>${h.name}</strong><br>
+            <small>${h.type}</small><br>
+            🛏️ Leitos: <strong>${h.beds}</strong> | 
+            🏥 UTI: <strong>${h.icu}</strong><br>
+            💨 Oxigênio: <strong>${h.o2}%</strong><br>
+            <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${color}20;color:${color};margin-top:4px">${status.toUpperCase()}</span>
+          </div>
+        `);
+        
+        return { marker, hospital: h };
+      });
+    }
+
+    // ===== MARCADORES DE AMBULÂNCIAS =====
+    function addAmbulanceMarkers() {
+      state.ambulanceMarkers = CONFIG.ambulances.map(amb => {
+        const icon = L.divIcon({
+          className: 'ambulance-icon',
+          html: `<div style="background:#3b82f6;width:32px;height:32px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(59,130,246,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:16px">🚑</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          className: 'ambulance-icon'
+        });
+
+        const marker = L.marker([amb.lat, amb.lng], { icon, zIndexOffset: 100 }).addTo(state.map);
+        
+        marker.bindPopup(`
+          <div style="font-family:Inter,sans-serif">
+            <strong>🚑 Ambulância ${amb.id}</strong><br>
+            Tipo: ${amb.type === 'advanced' ? 'Suporte Avançado' : 'Básica'}<br>
+            Status: <strong style="color:${amb.status === 'available' ? '#22c55e' : '#f59e0b'}">${amb.status.toUpperCase()}</strong>
+          </div>
+        `);
+        
+        return { marker, ambulance: amb };
+      });
+    }
+
+    // ===== ANIMAÇÃO DE AMBULÂNCIAS =====
+    function startAmbulanceAnimations() {
+      // Simular movimento aleatório das ambulâncias disponíveis
+      state.ambulanceAnimations = setInterval(() => {
+        CONFIG.ambulances.forEach((amb, idx) => {
+          if (amb.status === 'available' && state.ambulanceMarkers[idx]) {
+            // Movimento suave aleatório
+            const delta = 0.0005; // ~50 metros
+            amb.lat += (Math.random() - 0.5) * delta * 2;
+            amb.lng += (Math.random() - 0.5) * delta * 2;
+            
+            // Manter dentro de limites razoáveis de SP
+            amb.lat = Math.max(-23.7, Math.min(-23.4, amb.lat));
+            amb.lng = Math.max(-46.8, Math.min(-46.5, amb.lng));
+            
+            // Atualizar marcador
+            state.ambulanceMarkers[idx].marker.setLatLng([amb.lat, amb.lng]);
+          }
+        });
+      }, 2000); // Atualiza a cada 2 segundos
+    }
+
+    // ===== MARCADOR DO USUÁRIO =====
+    function addUserMarker(coords, label = '📍 Você está aqui') {
+      if (state.userMarker) state.map.removeLayer(state.userMarker);
+      
+      const icon = L.divIcon({
+        className: 'user-marker',
+        html: `<div style="background:#8b5cf6;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(139,92,246,0.5)"></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+
+      state.userMarker = L.marker([coords.lat, coords.lng], { icon, zIndexOffset: 1000 })
+        .addTo(state.map)
+        .bindPopup(label)
+        .openPopup();
+      
+      state.map.setView([coords.lat, coords.lng], 14);
+      return state.userMarker;
+    }
+
+    // ===== BUSCAR HOSPITAL MAIS PRÓXIMO =====
+    function findNearestHospital(coords) {
+      let nearest = null;
+      let minDist = Infinity;
+      
+      for (const h of CONFIG.hospitals) {
+        const dist = haversineDistance(coords, h);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = { ...h, distance: dist };
+        }
+      }
+      return nearest;
+    }
+
+    function haversineDistance(coord1, coord2) {
+      const R = 6371;
+      const dLat = (coord2.lat - coord1.lat) * Math.PI / 180;
+      const dLon = (coord2.lng - coord1.lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(coord1.lat*Math.PI/180)*Math.cos(coord2.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function findAndHighlightNearestHospital(coords) {
+      const nearest = findNearestHospital(coords);
+      if (!nearest) return;
+      
+      // Highlight no mapa
+      const target = state.hospitalMarkers.find(m => m.hospital.id === nearest.id);
+      if (target) {
+        target.marker.openPopup();
+        // Efeito visual
+        target.marker.getElement()?.style.transition = 'transform 0.3s';
+        target.marker.getElement()?.style.transform = 'scale(1.2)';
+        setTimeout(() => {
+          target.marker.getElement()?.style.transform = 'scale(1)';
+        }, 500);
+      }
+      
+      // Desenhar rota
+      drawRoute(coords, nearest);
+      
+      // Atualizar UI
+      updateRoutePanel(nearest, coords);
+      
+      return nearest;
+    }
+
+    // ===== DESENHAR ROTA =====
+    function drawRoute(from, to) {
+      if (state.routeLine) state.map.removeLayer(state.routeLine);
+      
+      // Rota simplificada (linha reta) - produção: usar OSRM
+      state.routeLine = L.polyline([[from.lat, from.lng], [to.lat, to.lng]], {
+        color: '#ef4444',
+        weight: 4,
+        opacity: 0.8,
+        dashArray: '5, 10'
+      }).addTo(state.map);
+      
+      // Ajustar zoom para mostrar rota
+      state.map.fitBounds(state.routeLine.getBounds(), { padding: [50, 50] });
+    }
+
+    // ===== ATUALIZAR PAINEL DE ROTA =====
+    function updateRoutePanel(hospital, from) {
+      const distance = formatDistance(hospital.distance);
+      const eta = estimateTravelTime(hospital.distance);
+      
+      document.getElementById('eta').textContent = eta;
+      document.getElementById('distance').textContent = distance;
+      document.getElementById('vehicle').textContent = '🚑 Ambulância #A-204';
+      document.getElementById('bedsCount').textContent = hospital.beds;
+      document.getElementById('icuCount').textContent = hospital.icu;
+      document.getElementById('o2Level').textContent = `${hospital.o2}%`;
+      document.getElementById('teamStatus').textContent = hospital.beds > 10 ? 'Disponível' : 'Limitada';
+      
+      document.getElementById('routeResult').classList.remove('hidden');
+      
+      // Scroll suave para o resultado em mobile
+      if (window.innerWidth < 768) {
+        document.getElementById('routeResult')?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function formatDistance(km) {
+      return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+    }
+
+    function estimateTravelTime(distanceKm) {
+      const minutes = Math.round((distanceKm / 30) * 60); // 30 km/h média urbana
+      return `${Math.max(5, minutes)} min`;
+    }
+
+    // ===== GEOLOCALIZAÇÃO AUTOMÁTICA =====
+    async function tryAutoGeolocate() {
+      if (!navigator.geolocation) return;
+      
+      try {
+        // Tentar obter localização com cache de 5 minutos
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 8000,
+            maximumAge: 300000
+          });
+        });
+        
+        const coords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        };
+        
+        state.userLocation = coords;
+        addUserMarker(coords, '📍 Localização detectada');
+        
+        // Buscar hospital mais próximo automaticamente
+        const nearest = findAndHighlightNearestHospital(coords);
+        if (nearest) {
+          showToast(`🏥 Hospital mais próximo: ${nearest.name}`, 'success');
+          document.getElementById('heroCepInput').placeholder = `✓ ${nearest.name} a ${formatDistance(nearest.distance)}`;
+        }
+        
+      } catch (err) {
+        console.log('Geolocalização não disponível ou negada:', err.message);
+        // Fallback: mostrar mensagem sutil
+        document.getElementById('liveStatus').textContent = 'Aguardando localização...';
+      }
+    }
+
+    // ===== BUSCA POR CEP =====
+    async function searchByCep(cep) {
+      const cleanCep = cep.replace(/\D/g, '');
+      if (cleanCep.length !== 8) throw new Error('CEP inválido. Use 00000-000');
+      
+      // ViaCEP
+      const viaCep = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const address = await viaCep.json();
+      
+      if (address.erro) throw new Error('CEP não encontrado');
+      
+      // Nominatim para coordenadas
+      const geoUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(`${address.logradouro}, ${address.bairro}, ${address.localidade}`)}&limit=1`;
+      const geoRes = await fetch(geoUrl, { headers: { 'User-Agent': 'AuraHealthSP/1.0' } });
+      const geoData = await geoRes.json();
+      
+      if (!geoData.length) throw new Error('Não foi possível geocodificar o endereço');
+      
+      const coords = {
+        lat: parseFloat(geoData[0].lat),
+        lng: parseFloat(geoData[0].lon),
+        address: `${address.logradouro}, ${address.bairro} - ${address.localidade}/${address.uf}`
+      };
+      
+      return coords;
+    }
+
+    // ===== EVENT LISTENERS =====
+    function setupEventListeners() {
+      // CEP Search - Hero Map
+      document.getElementById('heroSearchCep')?.addEventListener('click', async () => {
+        const cep = document.getElementById('heroCepInput').value.trim();
+        if (!cep) return showToast('Digite um CEP válido', 'warning');
+        
+        try {
+          showLoading(true);
+          const coords = await searchByCep(cep);
+          
+          // Atualizar UI
+          state.userLocation = coords;
+          addUserMarker(coords, `📍 ${coords.address}`);
+          document.getElementById('heroCepInput').placeholder = `✓ ${coords.address}`;
+          
+          // Encontrar hospital
+          const nearest = findAndHighlightNearestHospital(coords);
+          if (nearest) {
+            showToast(`🏥 Encontrado: ${nearest.name} (${formatDistance(nearest.distance)})`, 'success');
+          }
+          
+        } catch (err) {
+          showToast('❌ ' + err.message, 'error');
+        } finally {
+          showLoading(false);
+        }
+      });
+      
+      // Enter key no input de CEP
+      document.getElementById('heroCepInput')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('heroSearchCep')?.click();
+        }
+      });
+      
+      // Format CEP input
+      document.getElementById('heroCepInput')?.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 5) value = value.slice(0, 5) + '-' + value.slice(5, 8);
+        e.target.value = value;
+      });
+      
+      // Geolocation Button - Hero Map
+      document.getElementById('heroUseLocation')?.addEventListener('click', async () => {
+        try {
+          showLoading(true);
+          await tryAutoGeolocate();
+        } finally {
+          showLoading(false);
+        }
+      });
+      
+      // Emergency Button
+      document.getElementById('emergencyBtn')?.addEventListener('click', () => {
+        document.getElementById('emergencyModal').classList.remove('hidden');
+        if (window.socket) window.socket.emit('emergency:activate', { level: 'CRITICAL', ts: Date.now() });
+      });
+      document.getElementById('closeEmergency')?.addEventListener('click', () => {
+        document.getElementById('emergencyModal').classList.add('hidden');
+      });
+      document.getElementById('dispatchSamu')?.addEventListener('click', () => {
+        showToast('🚑 SAMU acionado com prioridade máxima!', 'success');
+      });
+      
+      // New Patient Form
+      document.getElementById('newPatientForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const patient = {
+          name: document.getElementById('patientName').value,
+          symptoms: document.getElementById('patientSymptoms').value,
+          age: parseInt(document.getElementById('patientAge').value)
+        };
+        
+        // Simular triagem IA
+        const result = simulateTriage(patient.symptoms, patient.age);
+        addQueueItem({ ...patient, ...result });
+        
+        if (window.socket) window.socket.emit('patient:register', { ...patient, priority: result.priority });
+        
+        showToast(`✅ Triagem: Prioridade ${result.priority}`, 'success');
+        e.target.reset();
+      });
+      
+      // Logistics Route Calculation
+      document.getElementById('calculateRoute')?.addEventListener('click', () => {
+        const [lat, lng] = document.getElementById('originSelect').value.split(',').map(Number);
+        const destId = document.getElementById('destinationSelect').value;
+        const hospital = CONFIG.hospitals.find(h => h.id === destId);
+        
+        if (hospital) {
+          const from = { lat, lng };
+          drawRoute(from, hospital);
+          updateRoutePanel(hospital, from);
+          showToast('🗺️ Rota calculada', 'success');
+        }
+      });
+      
+      document.getElementById('dispatchVehicle')?.addEventListener('click', () => {
+        showToast('🚀 Veículo despachado!', 'success');
+        if (window.socket) window.socket.emit('logistics:dispatch', { ts: Date.now() });
+      });
+      
+      // Audit
+      document.getElementById('refreshBlocks')?.addEventListener('click', loadBlockchainBlocks);
+      document.getElementById('searchTx')?.addEventListener('click', () => {
+        const q = document.getElementById('txSearch').value;
+        if (q) showToast(`🔍 Buscando: "${q}"`, 'info');
+      });
+      
+      // Footer links
+      document.querySelectorAll('[data-nav-link]').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const target = e.target.getAttribute('href').substring(1);
+          document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+          document.querySelector(`[data-view="${target}"]`)?.classList.add('active');
+          document.getElementById(target)?.classList.add('active');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+      
+      // Feedback
+      document.getElementById('footerFeedback')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('feedbackModal').classList.remove('hidden');
+      });
+      document.getElementById('closeFeedback')?.addEventListener('click', () => {
+        document.getElementById('feedbackModal').classList.add('hidden');
+      });
+      document.getElementById('feedbackForm')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        showToast('✅ Feedback enviado! Obrigado.', 'success');
+        document.getElementById('feedbackForm').reset();
+        document.getElementById('feedbackModal').classList.add('hidden');
+      });
+      
+      // Export data
+      document.getElementById('footerExportData')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        showToast('📥 Exportando dados...', 'info');
+        setTimeout(() => {
+          const data = { exported: new Date().toISOString(), patients: [], triages: [] };
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `aurahealth-export-${Date.now()}.json`;
+          a.click();
+          showToast('✅ Dados exportados!', 'success');
+        }, 1000);
+      });
+    }
+
+    // ===== NAVEGAÇÃO =====
+    function setupNavigation() {
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+          e.target.classList.add('active');
+          document.getElementById(e.target.dataset.view).classList.add('active');
+          
+          if (e.target.dataset.view === 'audit') loadBlockchainBlocks();
+          if (e.target.dataset.view === 'logistics' && state.map) state.map.invalidateSize();
+        });
+      });
+    }
+
+    // ===== SOCKET.IO =====
+    function setupSocketListeners() {
+      window.socket.on('patient:updated', (data) => {
+        addQueueItem(data);
+        updateStats();
+      });
+      window.socket.on('dashboard:refresh', () => loadDashboard());
+      window.socket.on('emergency:broadcast', (data) => {
+        if (data.level === 'CRITICAL') {
+          showToast('🚨 EMERGÊNCIA GLOBAL ATIVADA', 'error');
+          document.getElementById('systemStatus').className = 'status-badge offline';
+          document.getElementById('systemStatus').textContent = '● EMERGÊNCIA';
+        }
+      });
+    }
+
+    // ===== FUNÇÕES AUXILIARES =====
+    function simulateTriage(symptoms, age) {
+      const s = symptoms.toLowerCase();
+      let score = 0;
+      if (s.includes('dor no peito') || s.includes('peito')) score += 0.85;
+      if (s.includes('respir') || s.includes('falta de ar')) score += 0.78;
+      if (s.includes('trauma') || s.includes('acidente')) score += 0.65;
+      if (age < 2 || age > 75) score += 0.12;
+      score = Math.min(1, score);
+      
+      const priority = score >= 0.75 ? 'CRITICAL' : score >= 0.55 ? 'HIGH' : score >= 0.35 ? 'MEDIUM' : 'LOW';
+      return { score: parseFloat(score.toFixed(2)), priority };
+    }
+
+    function addQueueItem(patient) {
+      const queue = document.getElementById('triageQueue');
+      const item = document.createElement('div');
+      item.className = `queue-item priority-${patient.priority?.toLowerCase() || 'low'}`;
+      item.innerHTML = `<div class="queue-info"><strong>${patient.name}</strong><small>${patient.symptoms}</small></div><span class="priority-badge priority-${patient.priority?.toLowerCase() || 'low'}">${patient.priority || 'LOW'}</span>`;
+      queue.prepend(item);
+      if (queue.children.length > 5) queue.removeChild(queue.lastChild);
+      updateStats();
+    }
+
+    function updateStats() {
+      const count = document.getElementById('waitingCount');
+      count.textContent = parseInt(count.textContent || '0') + 1;
+    }
+
+    function loadDashboard() {
+      document.getElementById('waitingCount').textContent = Math.floor(Math.random() * 30) + 10;
+      document.getElementById('bedsAvailable').textContent = Math.floor(Math.random() * 25) + 5;
+      document.getElementById('avgTime').textContent = (Math.random() * 5 + 6).toFixed(1) + 'min';
+      document.getElementById('txCount').textContent = (Math.random() * 500 + 1000).toFixed(0) + 'k';
+      loadHospitalCards();
+      loadTriageQueue();
+    }
+
+    function loadHospitalCards() {
+      const container = document.getElementById('hospitalsMap');
+      container.innerHTML = CONFIG.hospitals.map(h => {
+        const status = h.beds > 20 ? 'available' : h.beds > 5 ? 'busy' : 'critical';
+        return `<div class="hospital-marker ${status}"><strong>${h.name}</strong><span class="beds">${h.beds} vagas</span></div>`;
+      }).join('');
+    }
+
+    function loadTriageQueue() {
+      const queue = document.getElementById('triageQueue');
+      queue.innerHTML = `
+        <div class="queue-item priority-high"><div class="queue-info"><strong>Maria S.</strong><small>Dor no peito, sudorese</small></div><span class="priority-badge priority-high">HIGH</span></div>
+        <div class="queue-item priority-medium"><div class="queue-info"><strong>João P.</strong><small>Febre 38.5°C</small></div><span class="priority-badge priority-medium">MEDIUM</span></div>
+        <div class="queue-item priority-low"><div class="queue-info"><strong>Ana L.</strong><small>Trauma leve</small></div><span class="priority-badge priority-low">LOW</span></div>
+      `;
+    }
+
+    function loadBlockchainBlocks() {
+      const list = document.getElementById('blocksList');
+      const blocks = [
+        { index: 1542, hash: 'a3f5c9e2...', type: 'PATIENT_ADMISSION' },
+        { index: 1541, hash: 'b7d2f1a8...', type: 'TRIAGE_COMPLETE' },
+        { index: 1540, hash: 'c1e8a4b3...', type: 'CAPACITY_UPDATE' }
+      ];
+      list.innerHTML = blocks.map(b => `<div class="block-item"><strong>Bloco #${b.index}</strong><br><small class="hash">${b.hash}</small><br><small>${b.type}</small></div>`).join('');
+      
+      document.getElementById('chainStats').innerHTML = `
+        <p><strong>Blocos:</strong> ${blocks[0].index}</p>
+        <p><strong>Status:</strong> <span style="color:#22c55e">✅ Válida</span></p>
+      `;
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      toast.style.cssText = 'padding:1rem 1.5rem;border-radius:8px;color:white;font-weight:500;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);margin-bottom:0.5rem;animation:slideIn 0.3s ease';
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    function showLoading(show) {
+      document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+    }
+
+    // Cleanup on unload
+    window.addEventListener('beforeunload', () => {
+      if (state.ambulanceAnimations) clearInterval(state.ambulanceAnimations);
+      if (window.socket) window.socket.disconnect();
+    });
+  </script>
+</body>
+
+</html>
