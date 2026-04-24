@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="AuraHealthSP - Sistema Operacional da Saúde Pública">
+  <title>AuraHealthSP | Saúde Integrada em Tempo Real</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">🏥 AuraHealth<span>SP</span></div>
+      <nav class="nav">
+        <button class="nav-btn active" data-view="dashboard">📊 Dashboard</button>
+        <button class="nav-btn" data-view="triage">🤖 Triagem IA</button>
+        <button class="nav-btn" data-view="logistics">🚑 Logística</button>
+        <button class="nav-btn" data-view="audit">🔗 Auditoria</button>
+      </nav>
+      <div class="user-panel">
+        <span class="status-badge online" id="systemStatus">● Online</span>
+        <button id="emergencyBtn" class="emergency-btn">🚨 Emergência</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      
+      <!-- Dashboard View -->
+      <section id="dashboard" class="view active">
+        <div class="stats-grid">
+          <div class="stat-card pulse">
+            <h3>👥 Pacientes em Espera</h3>
+            <span class="stat-value" id="waitingCount">24</span>
+            <span class="stat-delta down">▼ 12% vs ontem</span>
+          </div>
+          <div class="stat-card">
+            <h3>🛏️ Vagas Disponíveis</h3>
+            <span class="stat-value" id="bedsAvailable">18</span>
+            <span class="stat-delta up">▲ 3 novas</span>
+          </div>
+          <div class="stat-card">
+            <h3>⏱️ Tempo Médio Atendimento</h3>
+            <span class="stat-value" id="avgTime">8.2min</span>
+            <span class="stat-delta down">▼ 34% melhoria</span>
+          </div>
+          <div class="stat-card">
+            <h3>🔗 Transações Auditadas</h3>
+            <span class="stat-value" id="txCount">1.2k</span>
+            <span class="stat-delta up">▲ Hoje</span>
+          </div>
+        </div>
+
+        <div class="panels-grid">
+          <!-- Triage Queue Panel -->
+          <div class="panel triage-panel">
+            <h4>🤖 Triagem em Tempo Real</h4>
+            <div id="triageQueue" class="queue-list">
+              <!-- Queue items injected by JS -->
+            </div>
+            <form id="newPatientForm" class="quick-add">
+              <input type="text" id="patientName" placeholder="Nome do paciente" required />
+              <input type="text" id="patientSymptoms" placeholder="Sintomas (ex: dor no peito, febre)" required />
+              <input type="number" id="patientAge" placeholder="Idade" min="0" max="120" required />
+              <button type="submit">▶ Iniciar Triagem IA</button>
+            </form>
+          </div>
+
+          <!-- Hospital Capacity Panel -->
+          <div class="panel capacity-panel">
+            <h4>🏥 Capacidade Hospitalar</h4>
+            <div id="hospitalsMap" class="map-container">
+              <!-- Hospital markers injected by JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Triage View -->
+      <section id="triage" class="view">
+        <div class="triage-interface">
+          <div class="ai-analysis">
+            <h4>🧠 Análise de IA - Priorização</h4>
+            <div class="analysis-steps">
+              <div class="step completed">✓ Extração de sintomas</div>
+              <div class="step completed">✓ Cross-reference com protocolos</div>
+              <div class="step active">● Cálculo de risco (ESC Score)</div>
+              <div class="step pending">○ Recomendação de destino</div>
+            </div>
+            <div class="risk-meter">
+              <label>Nível de Risco Estimado</label>
+              <div class="meter-bar"><div class="meter-fill" id="riskFill"></div></div>
+              <span id="riskLabel">Aguardando dados...</span>
+            </div>
+            <div id="aiRecommendation" class="recommendation-box hidden">
+              <h5>🎯 Recomendação da IA</h5>
+              <p id="recDestination"></p>
+              <p id="recTransport"></p>
+              <p id="recETA"></p>
+            </div>
+          </div>
+          <div class="patient-card" id="activePatientCard">
+            <h5 id="cardName">Selecione um paciente</h5>
+            <p id="cardSymptoms">-</p>
+            <div class="priority-badge" id="cardPriority">-</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Logistics View -->
+      <section id="logistics" class="view">
+        <div class="supply-chain-dashboard">
+          <h4>🚑 Logística Inteligente</h4>
+          <div class="route-planner">
+            <div class="route-step">
+              <span class="step-icon">📍</span>
+              <div>
+                <strong>Origem</strong>
+                <select id="originSelect">
+                  <option value="-23.555,-46.655">UBS Vila Mariana</option>
+                  <option value="-23.540,-46.630">UPA Ipiranga</option>
+                  <option value="-23.533,-46.589">Domicílio (SAMU)</option>
+                </select>
+              </div>
+            </div>
+            <div class="route-step">
+              <span class="step-icon">🎯</span>
+              <div>
+                <strong>Destino</strong>
+                <select id="destinationSelect">
+                  <option value="hc">Hospital das Clínicas</option>
+                  <option value="santa">Santa Casa</option>
+                  <option value="upa-zl">UPA Zona Leste</option>
+                </select>
+              </div>
+            </div>
+            <div class="route-step">
+              <span class="step-icon">⚡</span>
+              <div>
+                <strong>Urgência</strong>
+                <select id="urgencySelect">
+                  <option value="normal">Normal</option>
+                  <option value="high">Alta</option>
+                  <option value="critical">Crítica 🚨</option>
+                </select>
+              </div>
+            </div>
+            <button id="calculateRoute" class="action-btn">🔍 Calcular Rota Ótima</button>
+          </div>
+          <div id="routeResult" class="route-result hidden">
+            <div class="route-info">
+              <span>⏱️ <strong id="eta">12 min</strong></span>
+              <span>🚑 <strong id="vehicle">Ambulância #A-204</strong></span>
+              <span>🛣️ <strong id="distance">4.2 km</strong></span>
+            </div>
+            <div class="supply-check">
+              <h5>✅ Recursos Confirmados no Destino:</h5>
+              <ul id="suppliesList">
+                <li>✓ Leitos: <span id="bedsCount">3</span></li>
+                <li>✓ UTI: <span id="icuCount">1</span></li>
+                <li>✓ Oxigênio: <span id="o2Level">98%</span></li>
+                <li>✓ Equipe: <span id="teamStatus">Disponível</span></li>
+              </ul>
+            </div>
+            <button id="dispatchVehicle" class="action-btn primary">🚀 Despachar Veículo</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Audit View -->
+      <section id="audit" class="view">
+        <div class="audit-dashboard">
+          <div class="block-explorer">
+            <div class="block-header">
+              <h4>🔗 Auditoria Blockchain</h4>
+              <button id="refreshBlocks">🔄 Atualizar</button>
+            </div>
+            <div id="blocksList" class="blocks-list">
+              <!-- Blocks injected by JS -->
+            </div>
+          </div>
+          <div class="transaction-search">
+            <input type="text" id="txSearch" placeholder="Buscar por ID, paciente ou tipo..." />
+            <button id="searchTx">🔍 Buscar</button>
+          </div>
+          <div id="txDetails" class="tx-details hidden">
+            <!-- Transaction details injected by JS -->
+          </div>
+          <div class="chain-stats">
+            <h5>📊 Estatísticas da Chain</h5>
+            <div id="chainStats">
+              <!-- Stats injected by JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Emergency Modal -->
+    <div id="emergencyModal" class="modal hidden">
+      <div class="modal-content">
+        <h3>🚨 Protocolo de Emergência Ativado</h3>
+        <p>Todos os recursos críticos foram priorizados. Confirme as ações:</p>
+        <div class="emergency-actions">
+          <button id="dispatchSamu" class="action-btn primary">🚑 Acionar SAMU Imediato</button>
+          <button id="alertHospitals" class="action-btn secondary">📡 Alertar Todos os Hospitais</button>
+          <button id="lockResources" class="action-btn warning">🔒 Reservar Recursos Críticos</button>
+          <button id="closeEmergency" class="action-btn ghost">✕ Fechar Protocolo</button>
+        </div>
+        <div class="emergency-log" id="emergencyLog">
+          <small>Log de ações em tempo real...</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+  </div>
+
+  <!-- Application Scripts -->
+  <script src="js/blockchain-audit.js"></script>
+  <script src="js/triage-ai.js"></script>
+  <script src="js/supply-chain.js"></script>
+  <script src="js/socket-client.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
