@@ -1,5 +1,7 @@
-<img width="200" height="200" alt="prefeitura-sp" src="https://github.com/user-attachments/assets/3779e7f6-c8b7-4c39-88d4-22a1b0dd4e60" />
-
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/08476a00-dca2-404c-9d73-07f5a597db63" width="200" alt="esus"/>
+  <img src="https://github.com/user-attachments/assets/3779e7f6-c8b7-4c39-88d4-22a1b0dd4e60" width="200" alt="prefeitura-sp"/>
+</p>
 
 # AuraHealthSP
 
