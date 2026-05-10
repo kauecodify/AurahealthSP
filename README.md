@@ -1,7 +1,7 @@
 <img width="200" height="200" alt="prefeitura-sp" src="https://github.com/user-attachments/assets/3779e7f6-c8b7-4c39-88d4-22a1b0dd4e60" />
 
 
-# AuraHealthSP
+# AuraHealthSP - BRAZIL
 
 > **Sistema Operacional da Saúde Pública e Privada**  
 > *Integrando atendimento, logística, inteligência artificial e transparência em tempo real*
