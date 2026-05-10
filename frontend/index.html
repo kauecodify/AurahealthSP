@@ -3,48 +3,223 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="AuraHealthSP - Sistema Operacional da Saúde Pública de São Paulo">
-  <meta name="keywords" content="saúde, SUS, triagem, IA, logística, blockchain, São Paulo, ambulância, mapa">
-  <meta name="author" content="AuraHealthSP Team">
-  <meta name="theme-color" content="#0ea5a5">
-  
-  <title>AuraHealthSP | Saúde Integrada em Tempo Real</title>
-  
-  <!-- Fonts & Icons -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="description"
+    content="AuraHealthSP - Sistema de Saúde com roteamento inteligente em tempo real via Leaflet e OSRM" />
+  <meta name="keywords" content="saúde, SUS, leaflet, OSRM, roteamento, ambulância, emergência, São Paulo" />
+  <meta name="author" content="AuraHealthSP Team" />
+  <meta name="theme-color" content="#0ea5a5" />
+
+  <title>AuraHealthSP | Roteamento Inteligente em Tempo Real</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  
-  <!-- Styles -->
-  <link rel="stylesheet" href="css/styles.css" />
-  
-  <!-- Scripts (CDNs) -->
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="images/favicon.png">
-  
+  <!-- Leaflet Routing Machine CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" sizes="192x192" href="images/icon-192.png" />
+
   <style>
-    /* ===== MAPA EM DESTAQUE ===== */
+    :root {
+      --primary: #0ea5a5;
+      --primary-dark: #0d9488;
+      --secondary: #6366f1;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #22c55e;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+      --radius: 12px;
+      --radius-lg: 20px;
+      --transition: all 0.2s ease;
+      --font: 'Inter', system-ui, -apple-system, sans-serif
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    html {
+      scroll-behavior: smooth
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden
+    }
+
+    #app {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0
+    }
+
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      backdrop-filter: blur(8px)
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem
+    }
+
+    .logo img {
+      height: 40px;
+      width: auto;
+      border-radius: 8px
+    }
+
+    .logo-text {
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--text)
+    }
+
+    .logo-text span {
+      color: var(--primary)
+    }
+
+    .nav {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--bg);
+      padding: 0.25rem;
+      border-radius: 10px
+    }
+
+    .nav-btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition)
+    }
+
+    .nav-btn:hover,
+    .nav-btn.active {
+      background: var(--surface);
+      color: var(--primary);
+      box-shadow: var(--shadow)
+    }
+
+    .user-panel {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background: var(--bg);
+      color: var(--text-muted)
+    }
+
+    .status-badge.online {
+      color: var(--success)
+    }
+
+    .status-badge.online .dot {
+      background: var(--success);
+      animation: pulse 2s infinite
+    }
+
+    .status-badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block
+    }
+
+    .emergency-btn {
+      background: var(--danger);
+      color: white;
+      border: none;
+      padding: 0.5rem 1.25rem;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem
+    }
+
+    .emergency-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4)
+    }
+
+    /* Hero Map */
     #heroMap {
       position: relative;
       height: 50vh;
-      min-height: 350px;
-      max-height: 600px;
+      min-height: 380px;
+      max-height: 550px;
       width: 100%;
       border-bottom: 1px solid var(--border);
-      z-index: 1;
+      z-index: 1
     }
-    
+
     #heroMap .leaflet-container {
       height: 100%;
       width: 100%;
-      border-radius: 0;
+      border-radius: 0
     }
-    
-    /* Controles flutuantes sobre o mapa */
+
+    /* Controles do mapa */
     .map-controls {
       position: absolute;
       top: 1rem;
@@ -54,1061 +229,1563 @@
       display: flex;
       gap: 0.75rem;
       flex-wrap: wrap;
-      pointer-events: none;
+      pointer-events: none
     }
-    
-    .map-controls > * {
-      pointer-events: auto;
+
+    .map-controls>* {
+      pointer-events: auto
     }
-    
+
     .search-card {
-      background: white;
-      padding: 1rem;
+      background: var(--surface);
+      padding: 0.75rem 1rem;
       border-radius: var(--radius);
       box-shadow: var(--shadow-lg);
       display: flex;
       gap: 0.5rem;
       flex: 1;
       max-width: 600px;
-      align-items: center;
+      align-items: center
     }
-    
+
     .search-card input {
       flex: 1;
-      padding: 0.75rem;
+      padding: 0.6rem 0.85rem;
       border: 1px solid var(--border);
       border-radius: 8px;
-      font-size: 1rem;
+      font-size: 0.95rem;
       min-width: 0;
+      outline: none;
+      transition: var(--transition)
     }
-    
+
+    .search-card input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(14, 165, 165, 0.15)
+    }
+
     .search-card button {
       white-space: nowrap;
-      padding: 0.75rem 1.25rem;
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition)
     }
-    
-    .map-legend {
+
+    .search-card .action-btn {
+      background: var(--primary);
+      color: white
+    }
+
+    .search-card .action-btn.secondary {
+      background: var(--bg);
+      color: var(--text)
+    }
+
+    .search-card .action-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow)
+    }
+
+    /* Painel de rota flutuante */
+    .route-panel {
       position: absolute;
       bottom: 1rem;
+      left: 1rem;
       right: 1rem;
-      background: white;
-      padding: 0.75rem 1rem;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      font-size: 0.85rem;
       z-index: 1000;
-      max-width: 250px;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 1rem;
+      display: none;
+      max-width: 450px;
+      margin: 0 auto
     }
-    
-    .legend-item {
+
+    .route-panel.active {
+      display: block;
+      animation: slideUp 0.3s ease
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .route-panel h4 {
+      font-weight: 600;
+      margin-bottom: 0.75rem;
       display: flex;
       align-items: center;
+      gap: 0.5rem
+    }
+
+    .route-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
       gap: 0.5rem;
-      margin: 0.25rem 0;
+      margin-bottom: 0.75rem
     }
-    
-    .legend-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      display: inline-block;
+
+    .route-stat {
+      text-align: center;
+      padding: 0.5rem;
+      background: var(--bg);
+      border-radius: 8px
     }
-    
-    .legend-dot.ambulance { background: #3b82f6; animation: pulse 2s infinite; }
-    .legend-dot.hospital-available { background: #22c55e; }
-    .legend-dot.hospital-busy { background: #f59e0b; }
-    .legend-dot.hospital-critical { background: #ef4444; }
-    .legend-dot.user { background: #8b5cf6; border: 2px solid white; }
-    
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-      50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+
+    .route-stat strong {
+      display: block;
+      font-size: 1.1rem;
+      color: var(--primary)
     }
-    
-    /* Badge de status flutuante */
+
+    .route-stat span {
+      font-size: 0.75rem;
+      color: var(--text-muted)
+    }
+
+    .route-steps {
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: 0.85rem
+    }
+
+    .route-step {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.35rem 0;
+      border-bottom: 1px dashed var(--border)
+    }
+
+    .route-step:last-child {
+      border-bottom: none
+    }
+
+    .route-step .icon {
+      color: var(--primary);
+      font-weight: bold
+    }
+
+    .route-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem
+    }
+
+    .route-actions button {
+      flex: 1;
+      padding: 0.5rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition)
+    }
+
+    .route-actions .primary {
+      background: var(--primary);
+      color: white
+    }
+
+    .route-actions .secondary {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border)
+    }
+
+    /* Legenda */
     .floating-status {
       position: absolute;
       top: 1rem;
       right: 1rem;
-      background: white;
-      padding: 0.5rem 1rem;
+      background: var(--surface);
+      padding: 0.4rem 0.85rem;
       border-radius: 999px;
       box-shadow: var(--shadow);
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 500;
       z-index: 1000;
       display: flex;
       align-items: center;
+      gap: 0.4rem
+    }
+
+    .map-legend {
+      position: absolute;
+      bottom: 1rem;
+      right: 1rem;
+      background: var(--surface);
+      padding: 0.6rem 0.85rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      font-size: 0.8rem;
+      z-index: 1000;
+      max-width: 240px
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
       gap: 0.5rem;
+      margin: 0.2rem 0
     }
-    
-    .floating-status.online { color: #166534; }
-    .floating-status .dot {
-      width: 8px;
-      height: 8px;
-      background: #22c55e;
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
-      animation: pulse 2s infinite;
+      display: inline-block
     }
-    
-    /* Responsivo */
-    @media (max-width: 768px) {
-      #heroMap { height: 40vh; }
-      .search-card { flex-direction: column; }
-      .search-card input { width: 100%; }
-      .map-controls { flex-direction: column; align-items: stretch; }
-      .map-legend { bottom: auto; top: auto; left: 1rem; right: auto; max-width: 200px; }
+
+    .legend-dot.ambulance {
+      background: #3b82f6;
+      animation: pulse 2s infinite
     }
-    
-    /* Animação de ambulância no mapa */
-    @keyframes drive {
-      0% { transform: translate(0, 0) rotate(0deg); }
-      25% { transform: translate(2px, -1px) rotate(2deg); }
-      50% { transform: translate(0, 0) rotate(0deg); }
-      75% { transform: translate(-2px, 1px) rotate(-2deg); }
-      100% { transform: translate(0, 0) rotate(0deg); }
+
+    .legend-dot.hospital-available {
+      background: var(--success)
     }
-    
-    .ambulance-icon {
-      animation: drive 3s ease-in-out infinite;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+
+    .legend-dot.hospital-busy {
+      background: var(--warning)
     }
-    
-    /* Marker pulsing para usuário */
+
+    .legend-dot.hospital-critical {
+      background: var(--danger)
+    }
+
+    .legend-dot.user {
+      background: #8b5cf6;
+      border: 2px solid white
+    }
+
+    .legend-dot.route {
+      background: var(--primary);
+      width: 20px;
+      height: 4px;
+      border-radius: 2px
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4)
+      }
+
+      50% {
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0)
+      }
+    }
+
+    /* Loading de rota */
+    .route-loading {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      padding: 0.75rem 1.5rem;
+      border-radius: 999px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      z-index: 1000;
+      display: none
+    }
+
+    .route-loading.active {
+      display: flex
+    }
+
+    .route-loading .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      padding: 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%
+    }
+
+    .view {
+      display: none;
+      animation: fadeIn 0.3s ease
+    }
+
+    .view.active {
+      display: block
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem
+    }
+
+    .stat-card {
+      background: var(--surface);
+      padding: 1.25rem;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      transition: var(--transition)
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg)
+    }
+
+    .stat-card h3 {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 0.5rem
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1
+    }
+
+    .stat-delta {
+      display: inline-block;
+      margin-top: 0.35rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px
+    }
+
+    .stat-delta.up {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--success)
+    }
+
+    .stat-delta.down {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger)
+    }
+
+    /* Panels */
+    .panels-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem
+    }
+
+    @media(max-width:1024px) {
+      .panels-grid {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .panel {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden
+    }
+
+    .panel h4 {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      background: var(--bg)
+    }
+
+    /* Hospital List */
+    .hospital-list {
+      padding: 0.5rem;
+      max-height: 280px;
+      overflow-y: auto
+    }
+
+    .hospital-item {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem
+    }
+
+    .hospital-item:hover,
+    .hospital-item.active {
+      background: var(--bg)
+    }
+
+    .hospital-item:last-child {
+      border-bottom: none
+    }
+
+    .hospital-info {
+      flex: 1;
+      min-width: 0
+    }
+
+    .hospital-info strong {
+      display: block;
+      font-weight: 500;
+      color: var(--text)
+    }
+
+    .hospital-info small {
+      color: var(--text-muted);
+      font-size: 0.85rem
+    }
+
+    .hospital-status {
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase
+    }
+
+    .hospital-status.available {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success)
+    }
+
+    .hospital-status.busy {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning)
+    }
+
+    .hospital-status.critical {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger)
+    }
+
+    .hospital-action {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: var(--transition)
+    }
+
+    .hospital-action:hover {
+      background: var(--primary-dark)
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 1.5rem;
+      margin-top: auto
+    }
+
+    .footer-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 1.5rem
+    }
+
+    @media(max-width:900px) {
+      .footer-container {
+        grid-template-columns: 1fr 1fr
+      }
+    }
+
+    @media(max-width:640px) {
+      .footer-container {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .footer-brand .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem
+    }
+
+    .footer-brand .footer-logo img {
+      height: 32px
+    }
+
+    .footer-brand .footer-logo strong {
+      font-weight: 700
+    }
+
+    .footer-brand .footer-logo span {
+      color: var(--primary)
+    }
+
+    .footer-tagline {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin: 0.5rem 0 1rem
+    }
+
+    .footer-badges {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap
+    }
+
+    .badge {
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500
+    }
+
+    .badge.lgpd {
+      background: rgba(139, 92, 246, 0.1);
+      color: #8b5cf6
+    }
+
+    .badge.fhir {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--success)
+    }
+
+    .badge.opensource {
+      background: rgba(14, 165, 165, 0.1);
+      color: var(--primary)
+    }
+
+    .footer-links h5 {
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem
+    }
+
+    .footer-links ul {
+      list-style: none
+    }
+
+    .footer-links li {
+      margin: 0.35rem 0
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: var(--transition)
+    }
+
+    .footer-links a:hover {
+      color: var(--primary)
+    }
+
+    .footer-bottom {
+      max-width: 1400px;
+      margin: 1.5rem auto 0;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap
+    }
+
+    @media(max-width:640px) {
+      .footer-bottom {
+        flex-direction: column;
+        text-align: center
+      }
+    }
+
+    .footer-copyright {
+      color: var(--text-muted);
+      font-size: 0.85rem
+    }
+
+    .footer-copyright a {
+      color: var(--primary);
+      text-decoration: none
+    }
+
+    .footer-disclaimer {
+      color: var(--warning);
+      font-size: 0.8rem;
+      margin-top: 0.25rem
+    }
+
+    .footer-social {
+      display: flex;
+      gap: 0.5rem
+    }
+
+    .social-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      transition: var(--transition)
+    }
+
+    .social-icon:hover {
+      background: var(--primary);
+      color: white;
+      transform: translateY(-2px)
+    }
+
+    /* Modals & Toasts */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 1rem;
+      animation: fadeIn 0.2s ease
+    }
+
+    .modal-content {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.3s ease
+    }
+
+    .modal-content h3 {
+      font-weight: 700;
+      margin-bottom: 0.75rem
+    }
+
+    .modal-content p {
+      color: var(--text-muted);
+      margin-bottom: 1.25rem
+    }
+
+    .modal-actions,
+    .emergency-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap
+    }
+
+    .modal-actions button,
+    .emergency-actions button {
+      flex: 1;
+      min-width: 120px
+    }
+
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem
+    }
+
+    .toast {
+      padding: 0.85rem 1.25rem;
+      border-radius: 10px;
+      color: white;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      animation: slideIn 0.3s ease;
+      max-width: 320px
+    }
+
+    .toast.success {
+      background: var(--success)
+    }
+
+    .toast.error {
+      background: var(--danger)
+    }
+
+    .toast.warning {
+      background: var(--warning);
+      color: var(--text)
+    }
+
+    .toast.info {
+      background: var(--secondary)
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(100%)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0)
+      }
+    }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 4000
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite
+    }
+
+    /* Responsive Map Controls */
+    @media(max-width:768px) {
+      .header {
+        padding: 0.5rem 1rem;
+        flex-wrap: wrap
+      }
+
+      .nav {
+        order: 3;
+        width: 100%;
+        margin-top: 0.5rem;
+        justify-content: center
+      }
+
+      .user-panel {
+        order: 2
+      }
+
+      #heroMap {
+        height: 45vh
+      }
+
+      .search-card {
+        flex-direction: column
+      }
+
+      .search-card input {
+        width: 100%
+      }
+
+      .map-controls {
+        flex-direction: column;
+        align-items: stretch
+      }
+
+      .map-legend {
+        left: 1rem;
+        right: auto;
+        max-width: 200px
+      }
+
+      .route-panel {
+        left: 0.5rem;
+        right: 0.5rem;
+        max-width: none
+      }
+
+      .route-stats {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .panels-grid {
+        grid-template-columns: 1fr
+      }
+
+      .footer-container {
+        grid-template-columns: 1fr
+      }
+    }
+
+    /* Accessibility */
+    @media(prefers-reduced-motion:reduce) {
+      * {
+        animation: none !important;
+        transition: none !important
+      }
+
+      html {
+        scroll-behavior: auto
+      }
+    }
+
+    @media(prefers-contrast:high) {
+      :root {
+        --border: #94a3b8;
+        --shadow: 0 2px 4px rgba(0, 0, 0, 0.2)
+      }
+    }
+
+    /* Custom Leaflet */
+    .custom-marker {
+      background: none;
+      border: none
+    }
+
+    .hospital-marker {
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))
+    }
+
+    .ambulance-marker {
+      animation: ambulancePulse 2s infinite;
+      filter: drop-shadow(0 2px 6px rgba(59, 130, 246, 0.5))
+    }
+
+    @keyframes ambulancePulse {
+
+      0%,
+      100% {
+        transform: scale(1)
+      }
+
+      50% {
+        transform: scale(1.1)
+      }
+    }
+
     .user-marker {
-      animation: markerPulse 2s infinite;
+      animation: markerPulse 2s infinite
     }
-    
+
     @keyframes markerPulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.3); opacity: 0.7; }
+
+      0%,
+      100% {
+        transform: scale(1);
+        opacity: 1
+      }
+
+      50% {
+        transform: scale(1.3);
+        opacity: 0.7
+      }
+    }
+
+    /* Routing Machine overrides */
+    .leaflet-routing-container {
+      display: none !important
+    }
+
+    .leaflet-routing-geocoder input {
+      font-family: var(--font) !important
     }
   </style>
 </head>
 
 <body>
   <div id="app">
-    
-    <!-- ==================== HEADER ==================== -->
-    <header class="header">
+
+    <header class="header" role="banner">
       <div class="logo">
-        <img src="images/prefeitura.png" alt="Prefeitura de São Paulo" onerror="this.style.display='none'"/>
+        <img src="https://github.com/user-attachments/assets/3779e7f6-c8b7-4c39-88d4-22a1b0dd4e60" alt="Prefeitura SP"
+          onerror="this.style.display='none'" />
         <span class="logo-text">AuraHealth<span>SP</span></span>
       </div>
-      
       <nav class="nav" role="navigation" aria-label="Navegação principal">
-        <button class="nav-btn active" data-view="dashboard">📊 Dashboard</button>
-        <button class="nav-btn" data-view="triage">🤖 Triagem IA</button>
-        <button class="nav-btn" data-view="logistics">🚑 Logística</button>
-        <button class="nav-btn" data-view="audit">🔗 Auditoria</button>
+        <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+        <button class="nav-btn" data-view="logistics">Rotas</button>
+        <button class="nav-btn" data-view="hospitals">Hospitais</button>
       </nav>
-      
       <div class="user-panel">
-        <span class="status-badge online" id="systemStatus">● Online</span>
+        <span class="status-badge online" id="systemStatus"><span class="dot"></span><span>Online</span></span>
         <button id="emergencyBtn" class="emergency-btn">🚨 Emergência</button>
       </div>
     </header>
 
-    <!-- ==================== HERO MAP (SEMPRE VISÍVEL) ==================== -->
-    <section id="heroMap" aria-label="Mapa em tempo real de ambulâncias e hospitais">
-      <!-- Controles flutuantes -->
+    <section id="heroMap" aria-label="Mapa com roteamento em tempo real">
       <div class="map-controls">
         <div class="search-card">
-          <input type="text" id="heroCepInput" placeholder="🔍 Digite seu CEP para encontrar o hospital mais próximo" maxlength="9" aria-label="Buscar por CEP" />
-          <button id="heroSearchCep" class="action-btn">Buscar</button>
-          <button id="heroUseLocation" class="action-btn secondary" title="Usar minha localização">📍</button>
+          <input type="text" id="originInput" placeholder="📍 Origem: CEP, endereço ou clique no mapa"
+            aria-label="Origem da rota" />
+          <button id="calculateRouteBtn" class="action-btn">🗺️ Calcular Melhor Rota</button>
+          <button id="useLocationBtn" class="action-btn secondary" title="Usar minha localização">📍</button>
         </div>
       </div>
-      
-      <!-- Status flutuante -->
+
       <div class="floating-status online">
         <span class="dot"></span>
-        <span id="liveStatus">Atualizando em tempo real</span>
+        <span id="liveStatus">Roteamento OSRM ativo</span>
       </div>
-      
-      <!-- Legenda -->
-      <div class="map-legend">
+
+      <div class="map-legend" role="note">
         <strong>Legenda</strong>
-        <div class="legend-item"><span class="legend-dot ambulance"></span> 🚑 Ambulância em movimento</div>
-        <div class="legend-item"><span class="legend-dot hospital-available"></span> 🏥 Vagas disponíveis</div>
-        <div class="legend-item"><span class="legend-dot hospital-busy"></span> 🏥 Capacidade limitada</div>
+        <div class="legend-item"><span class="legend-dot ambulance"></span> 🚑 Ambulância</div>
+        <div class="legend-item"><span class="legend-dot hospital-available"></span> 🏥 Disponível</div>
+        <div class="legend-item"><span class="legend-dot hospital-busy"></span> 🏥 Limitado</div>
         <div class="legend-item"><span class="legend-dot hospital-critical"></span> 🏥 Crítico</div>
-        <div class="legend-item"><span class="legend-dot user"></span> 📍 Sua localização</div>
+        <div class="legend-item"><span class="legend-dot user"></span> 📍 Você</div>
+        <div class="legend-item"><span class="legend-dot route"></span> 🛣️ Melhor Rota</div>
+      </div>
+
+      <!-- Painel de rota calculada -->
+      <div id="routePanel" class="route-panel" role="region" aria-live="polite">
+        <h4>🛣️ Melhor Rota Calculada</h4>
+        <div class="route-stats">
+          <div class="route-stat"><strong id="routeDistance">-</strong><span>Distância</span></div>
+          <div class="route-stat"><strong id="routeTime">-</strong><span>Tempo estimado</span></div>
+          <div class="route-stat"><strong id="routeHospital">-</strong><span>Destino</span></div>
+        </div>
+        <div class="route-steps" id="routeSteps"></div>
+        <div class="route-actions">
+          <button id="confirmRoute" class="primary">✅ Confirmar Rota</button>
+          <button id="recalculateRoute" class="secondary">🔄 Recalcular</button>
+          <button id="closeRoutePanel" class="secondary">✕ Fechar</button>
+        </div>
+      </div>
+
+      <!-- Loading de rota -->
+      <div id="routeLoading" class="route-loading" role="status">
+        <div class="spinner"></div>
+        <span>Calculando melhor rota com OSRM...</span>
       </div>
     </section>
 
-    <!-- ==================== MAIN CONTENT ==================== -->
     <main class="main-content" role="main">
-      
-      <!-- ===== Dashboard View ===== -->
+
       <section id="dashboard" class="view active">
+        <h2 class="sr-only">Dashboard Operacional</h2>
         <div class="stats-grid">
           <div class="stat-card pulse">
-            <h3>👥 Pacientes em Espera</h3>
-            <span class="stat-value" id="waitingCount">24</span>
-            <span class="stat-delta down">▼ 12% vs ontem</span>
+            <h3>🚑 Rotas Ativas</h3>
+            <span class="stat-value" id="activeRoutes">3</span>
+            <span class="stat-delta up">▲ 2 novas</span>
           </div>
           <div class="stat-card">
-            <h3>🛏️ Vagas Disponíveis</h3>
-            <span class="stat-value" id="bedsAvailable">18</span>
-            <span class="stat-delta up">▲ 3 novas</span>
+            <h3>⏱️ Tempo Médio Rota</h3>
+            <span class="stat-value" id="avgRouteTime">9.4min</span>
+            <span class="stat-delta down">▼ 28% otimização</span>
           </div>
           <div class="stat-card">
-            <h3>⏱️ Tempo Médio Atendimento</h3>
-            <span class="stat-value" id="avgTime">8.2min</span>
-            <span class="stat-delta down">▼ 34% melhoria</span>
+            <h3>🏥 Hospitais Online</h3>
+            <span class="stat-value" id="hospitalsOnline">12</span>
+            <span class="stat-delta up">▲ Todos operantes</span>
           </div>
           <div class="stat-card">
-            <h3>🔗 Transações Auditadas</h3>
-            <span class="stat-value" id="txCount">1.2k</span>
-            <span class="stat-delta up">▲ Hoje</span>
+            <h3>📡 Precisão OSRM</h3>
+            <span class="stat-value">99.2%</span>
+            <span class="stat-delta up">▲ Dados em tempo real</span>
           </div>
         </div>
-
         <div class="panels-grid">
-          <div class="panel triage-panel">
-            <h4>🤖 Triagem em Tempo Real</h4>
-            <div id="triageQueue" class="queue-list"></div>
-            <form id="newPatientForm" class="quick-add">
-              <input type="text" id="patientName" placeholder="Nome do paciente" required />
-              <input type="text" id="patientSymptoms" placeholder="Sintomas" required />
-              <input type="number" id="patientAge" placeholder="Idade" min="0" max="120" required />
-              <button type="submit">▶ Iniciar Triagem IA</button>
-            </form>
+          <div class="panel">
+            <h4>🚨 Próximas Emergências</h4>
+            <div class="hospital-list" id="emergencyQueue"></div>
           </div>
-
-          <div class="panel capacity-panel">
-            <h4>🏥 Capacidade Hospitalar</h4>
-            <div id="hospitalsMap" class="map-container"></div>
+          <div class="panel">
+            <h4>📊 Performance de Rotas</h4>
+            <div class="hospital-list" id="routePerformance"></div>
           </div>
         </div>
       </section>
 
-      <!-- ===== Triage View ===== -->
-      <section id="triage" class="view">
-        <div class="triage-interface">
-          <div class="ai-analysis">
-            <h4>🧠 Análise de IA - Priorização</h4>
-            <div class="analysis-steps">
-              <div class="step completed">✓ Extração de sintomas</div>
-              <div class="step completed">✓ Cross-reference com protocolos</div>
-              <div class="step active">● Cálculo de risco (ESC Score)</div>
-              <div class="step pending">○ Recomendação de destino</div>
-            </div>
-            <div class="risk-meter">
-              <label>Nível de Risco Estimado</label>
-              <div class="meter-bar"><div class="meter-fill" id="riskFill"></div></div>
-              <span id="riskLabel">Aguardando dados...</span>
-            </div>
-            <div id="aiRecommendation" class="recommendation-box hidden">
-              <h5>🎯 Recomendação da IA</h5>
-              <p id="recDestination"></p>
-              <p id="recTransport"></p>
-              <p id="recETA"></p>
-            </div>
-          </div>
-          <div class="patient-card" id="activePatientCard">
-            <h5 id="cardName">Selecione um paciente</h5>
-            <p id="cardSymptoms">-</p>
-            <div class="priority-badge" id="cardPriority">-</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== Logistics View ===== -->
       <section id="logistics" class="view">
-        <div class="supply-chain-dashboard">
-          <h4>🚑 Logística Detalhada</h4>
-          <div class="route-planner">
-            <div class="route-step">
-              <strong>Origem</strong>
-              <select id="originSelect">
-                <option value="-23.555,-46.655">UBS Vila Mariana</option>
-                <option value="-23.540,-46.630">UPA Ipiranga</option>
-                <option value="-23.533,-46.589">Domicílio (SAMU)</option>
-              </select>
-            </div>
-            <div class="route-step">
-              <strong>Destino</strong>
-              <select id="destinationSelect">
-                <option value="hc">Hospital das Clínicas</option>
-                <option value="santa">Santa Casa</option>
-                <option value="upa-zl">UPA Zona Leste</option>
-              </select>
-            </div>
-            <div class="route-step">
-              <strong>Urgência</strong>
-              <select id="urgencySelect">
-                <option value="normal">Normal</option>
-                <option value="high">Alta</option>
-                <option value="critical">Crítica 🚨</option>
-              </select>
-            </div>
-            <button id="calculateRoute" class="action-btn">🔍 Calcular Rota</button>
-          </div>
-          <div id="routeResult" class="route-result hidden">
-            <div class="route-info">
-              <span>⏱️ <strong id="eta">12 min</strong></span>
-              <span>🚑 <strong id="vehicle">Ambulância #A-204</strong></span>
-              <span>🛣️ <strong id="distance">4.2 km</strong></span>
-            </div>
-            <div class="supply-check">
-              <h5>✅ Recursos Confirmados:</h5>
-              <ul id="suppliesList">
-                <li>✓ Leitos: <span id="bedsCount">3</span></li>
-                <li>✓ UTI: <span id="icuCount">1</span></li>
-                <li>✓ Oxigênio: <span id="o2Level">98%</span></li>
-                <li>✓ Equipe: <span id="teamStatus">Disponível</span></li>
-              </ul>
-            </div>
-            <button id="dispatchVehicle" class="action-btn primary">🚀 Despachar Veículo</button>
-          </div>
+        <h2 class="sr-only">Logística e Roteamento</h2>
+        <div class="panel">
+          <h4>🎯 Selecionar Destino</h4>
+          <div class="hospital-list" id="hospitalSelector"></div>
         </div>
       </section>
 
-      <!-- ===== Audit View ===== -->
-      <section id="audit" class="view">
-        <div class="audit-dashboard">
-          <div class="block-explorer">
-            <div class="block-header">
-              <h4>🔗 Auditoria Blockchain</h4>
-              <button id="refreshBlocks">🔄 Atualizar</button>
-            </div>
-            <div id="blocksList" class="blocks-list"></div>
-          </div>
-          <div class="transaction-search">
-            <input type="text" id="txSearch" placeholder="Buscar por ID, paciente ou tipo..." />
-            <button id="searchTx">🔍 Buscar</button>
-          </div>
-          <div id="txDetails" class="tx-details hidden"></div>
-          <div class="chain-stats">
-            <h5>📊 Estatísticas da Chain</h5>
-            <div id="chainStats"></div>
-          </div>
+      <section id="hospitals" class="view">
+        <h2 class="sr-only">Hospitais Cadastrados</h2>
+        <div class="panel">
+          <h4>🏥 Rede de Atendimento</h4>
+          <div class="hospital-list" id="allHospitals"></div>
         </div>
       </section>
 
     </main>
 
-    <!-- ==================== FOOTER ==================== -->
-    <footer class="footer">
+    <footer class="footer" role="contentinfo">
       <div class="footer-container">
         <div class="footer-brand">
           <div class="footer-logo">
-            <img src="images/prefeitura.png" alt="Prefeitura" onerror="this.style.display='none'"/>
+            <img src="https://github.com/user-attachments/assets/3779e7f6-c8b7-4c39-88d4-22a1b0dd4e60" alt="Prefeitura"
+              onerror="this.style.display='none'" />
             <strong>AuraHealth<span>SP</span></strong>
           </div>
-          <p class="footer-tagline">Sistema Operacional da Saúde de São Paulo.<br>Integrando atendimento em tempo real.</p>
+          <p class="footer-tagline">Roteamento inteligente via Leaflet + OSRM.<br>Integrando saúde em tempo real.</p>
           <div class="footer-badges">
             <span class="badge lgpd">🔒 LGPD</span>
-            <span class="badge fhir">🏥 FHIR</span>
-            <span class="badge opensource">💚 Open Source</span>
+            <span class="badge osrm">🗺️ OSRM</span>
+            <span class="badge opensource">💚 Open Source - Ciência e Tecnologia</span>
           </div>
         </div>
         <div class="footer-links">
-          <h5>🔗 Links</h5>
+          <h5>🔗 Navegação</h5>
           <ul>
             <li><a href="#dashboard" data-nav-link>Dashboard</a></li>
-            <li><a href="#triage" data-nav-link>Triagem IA</a></li>
-            <li><a href="#logistics" data-nav-link>Logística</a></li>
-            <li><a href="#audit" data-nav-link>Auditoria</a></li>
+            <li><a href="#logistics" data-nav-link>Rotas</a></li>
+            <li><a href="#hospitals" data-nav-link>Hospitais</a></li>
           </ul>
         </div>
         <div class="footer-links">
-          <h5>⚙️ Recursos</h5>
+          <h5>⚙️ APIs</h5>
           <ul>
-            <li><a href="#" id="footerExportData">📥 Exportar Dados</a></li>
-            <li><a href="#" id="footerApiDocs">🔌 API</a></li>
-            <li><a href="#" id="footerChangelog">📋 Changelog</a></li>
+            <li><a href="https://leafletjs.com" target="_blank" rel="noopener">🍃 Leaflet</a></li>
+            <li><a href="https://project-osrm.org" target="_blank" rel="noopener">🗺️ OSRM</a></li>
+            <li><a href="https://overpass-api.de" target="_blank" rel="noopener">📍 Overpass</a></li>
           </ul>
         </div>
         <div class="footer-links">
           <h5>🆘 Suporte</h5>
           <ul>
             <li><a href="mailto:suporte@aurahealth.sp.gov.br">✉️ suporte@...</a></li>
-            <li><a href="tel:156">📞 156 - Central SP</a></li>
+            <li><a href="tel:192">📞 192 - SAMU</a></li>
             <li><a href="#" id="footerFeedback">💬 Feedback</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
         <div class="footer-copyright">
-          <p>&copy; <span id="currentYear"></span> Prefeitura de São Paulo • 
-            <a href="#" id="footerTerms">Termos</a> • 
+          <p>&copy; <span id="currentYear"></span> Prefeitura de São Paulo •
+            <a href="#" id="footerTerms">Termos</a> •
             <a href="#" id="footerPrivacy">Privacidade</a>
           </p>
           <p class="footer-disclaimer"><small>⚠️ Para emergências reais, disque 192 (SAMU) ou 193.</small></p>
         </div>
         <div class="footer-social">
-          <a href="https://github.com/kauecodify/AurahealthSP" target="_blank" class="social-icon" aria-label="GitHub">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          <a href="https://github.com/kauecodify/AurahealthSP" target="_blank" rel="noopener" class="social-icon"
+            aria-label="GitHub">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+            </svg>
           </a>
         </div>
       </div>
     </footer>
 
-    <!-- ==================== MODALS ==================== -->
-    <div id="emergencyModal" class="modal hidden">
+    <div id="emergencyModal" class="modal hidden" role="dialog" aria-modal="true">
       <div class="modal-content">
-        <h3>🚨 Protocolo de Emergência Ativado</h3>
-        <p>Todos os recursos críticos foram priorizados.</p>
+        <h3>🚨 Protocolo de Emergência</h3>
+        <p>Rota prioritária será calculada automaticamente para o hospital com maior disponibilidade.</p>
         <div class="emergency-actions">
-          <button id="dispatchSamu" class="action-btn primary">🚑 Acionar SAMU</button>
-          <button id="alertHospitals" class="action-btn secondary">📡 Alertar Hospitais</button>
+          <button id="dispatchPriority" class="action-btn primary">🚑 Acionar Rota Prioritária</button>
           <button id="closeEmergency" class="action-btn ghost">✕ Fechar</button>
         </div>
       </div>
     </div>
 
-    <div id="feedbackModal" class="modal hidden">
-      <div class="modal-content">
-        <h3>💬 Enviar Feedback</h3>
-        <form id="feedbackForm">
-          <select id="feedbackType" required>
-            <option value="">Tipo...</option>
-            <option value="bug">🐛 Bug</option>
-            <option value="feature">💡 Sugestão</option>
-            <option value="other">📝 Outro</option>
-          </select>
-          <textarea id="feedbackMessage" rows="4" placeholder="Descreva..." required></textarea>
-          <input type="email" id="feedbackEmail" placeholder="E-mail (opcional)" />
-          <div class="modal-actions">
-            <button type="submit" class="action-btn primary">Enviar</button>
-            <button type="button" id="closeFeedback" class="action-btn ghost">Cancelar</button>
-          </div>
-        </form>
-      </div>
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="loading-spinner"></div>
     </div>
-
-    <div id="toastContainer" class="toast-container"></div>
-    <div id="loadingOverlay" class="loading-overlay hidden"><div class="loading-spinner"></div></div>
-
   </div>
 
-  <!-- ==================== APP LOGIC ==================== -->
+  <!-- Leaflet + Routing Machine -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js" defer></script>
+
   <script>
-    // ===== CONFIGURAÇÃO INICIAL =====
+    // ===== CONFIGURAÇÃO =====
     const CONFIG = {
-      mapCenter: [-23.5505, -46.6333], // São Paulo
+      mapCenter: [-23.5505, -46.6333],
       mapZoom: 12,
+      osrmServer: 'https://router.project-osrm.org/route/v1/driving/',
       hospitals: [
-        { id: 'hc', name: 'Hospital das Clínicas', lat: -23.5614, lng: -46.6722, beds: 42, icu: 8, o2: 98, type: 'HOSPITAL' },
-        { id: 'santa', name: 'Santa Casa', lat: -23.5453, lng: -46.6425, beds: 18, icu: 3, o2: 87, type: 'HOSPITAL' },
-        { id: 'upa-zl', name: 'UPA Zona Leste', lat: -23.5333, lng: -46.5890, beds: 5, icu: 1, o2: 72, type: 'UPA' }
+        { id: 'hc', name: 'Hospital das Clínicas', lat: -23.5614, lng: -46.6722, beds: 42, icu: 8, o2: 98, type: 'HOSPITAL', status: 'available' },
+        { id: 'santa', name: 'Santa Casa', lat: -23.5453, lng: -46.6425, beds: 18, icu: 3, o2: 87, type: 'HOSPITAL', status: 'busy' },
+        { id: 'upa-zl', name: 'UPA Zona Leste', lat: -23.5333, lng: -46.5890, beds: 5, icu: 1, o2: 72, type: 'UPA', status: 'critical' },
+        { id: 'hsp-sul', name: 'Hospital São Paulo', lat: -23.5989, lng: -46.6656, beds: 35, icu: 6, o2: 94, type: 'HOSPITAL', status: 'available' },
+        { id: 'municipal', name: 'Hospital Municipal', lat: -23.5280, lng: -46.6390, beds: 28, icu: 4, o2: 89, type: 'HOSPITAL', status: 'available' }
       ],
       ambulances: [
-        { id: 'A-204', type: 'advanced', lat: -23.5550, lng: -46.6550, status: 'available', route: null },
-        { id: 'A-118', type: 'basic', lat: -23.5400, lng: -46.6300, status: 'busy', route: null },
-        { id: 'A-301', type: 'advanced', lat: -23.5600, lng: -46.6700, status: 'available', route: null }
+        { id: 'A-204', lat: -23.5550, lng: -46.6550, status: 'available' },
+        { id: 'A-118', lat: -23.5400, lng: -46.6300, status: 'busy' },
+        { id: 'A-301', lat: -23.5600, lng: -46.6700, status: 'available' }
       ]
     };
 
-    // ===== ESTADO GLOBAL =====
     const state = {
       map: null,
+      routingControl: null,
       userMarker: null,
       hospitalMarkers: [],
       ambulanceMarkers: [],
-      ambulanceAnimations: [],
-      routeLine: null,
-      userLocation: null
+      userLocation: null,
+      selectedHospital: null,
+      routeData: null
     };
 
     // ===== INICIALIZAÇÃO =====
-    document.addEventListener('DOMContentLoaded', async () => {
-      // Set year
+    document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('currentYear').textContent = new Date().getFullYear();
-      
-      // Initialize map immediately
-      initHeroMap();
-      
-      // Setup navigation
+      initMap();
       setupNavigation();
-      
-      // Setup event listeners
       setupEventListeners();
-      
-      // Start ambulance animation loop
-      startAmbulanceAnimations();
-      
-      // Try auto-geolocate
-      tryAutoGeolocate();
-      
-      // Load initial data
+      loadHospitals();
       loadDashboard();
-      loadBlockchainBlocks();
-      
-      // Connect WebSocket
-      if (typeof io !== 'undefined') {
-        window.socket = io();
-        setupSocketListeners();
-      }
+      tryAutoGeolocate();
     });
 
-    // ===== MAPA HERO =====
-    function initHeroMap() {
-      // Create map
-      state.map = L.map('heroMap').setView(CONFIG.mapCenter, CONFIG.mapZoom);
-      
-      // Add tiles
+    // ===== MAPA LEAFLET =====
+    function initMap() {
+      state.map = L.map('heroMap', { zoomControl: true, attributionControl: true }).setView(CONFIG.mapCenter, CONFIG.mapZoom);
+
+      // Camada base OpenStreetMap
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>',
-        maxZoom: 19
+        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> | Roteamento: <a href="https://project-osrm.org">OSRM</a>',
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c']
       }).addTo(state.map);
-      
-      // Add hospitals
+
+      // Controles de zoom posicionados
+      L.control.zoom({ position: 'topright' }).addTo(state.map);
+
       addHospitalMarkers();
-      
-      // Add ambulances
       addAmbulanceMarkers();
-      
-      // Add click handler for map
+
+      // Clique no mapa para definir origem
       state.map.on('click', (e) => {
-        if (state.userMarker) state.map.removeLayer(state.userMarker);
         state.userLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
-        addUserMarker(state.userLocation);
-        findAndHighlightNearestHospital(state.userLocation);
+        updateUserMarker(state.userLocation);
+        document.getElementById('originInput').value = `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+        showToast('📍 Origem definida no mapa', 'info');
       });
-      
-      // Resize map on window resize
-      window.addEventListener('resize', () => {
-        if (state.map) state.map.invalidateSize();
-      });
+
+      window.addEventListener('resize', () => state.map?.invalidateSize());
     }
 
     // ===== MARCADORES DE HOSPITAIS =====
     function addHospitalMarkers() {
-      state.hospitalMarkers = CONFIG.hospitals.map(h => {
-        const status = h.beds > 20 ? 'available' : h.beds > 5 ? 'busy' : 'critical';
-        const color = status === 'available' ? '#22c55e' : status === 'busy' ? '#f59e0b' : '#ef4444';
-        
+      CONFIG.hospitals.forEach(h => {
+        const statusColor = h.status === 'available' ? '#22c55e' : h.status === 'busy' ? '#f59e0b' : '#ef4444';
         const icon = L.divIcon({
-          className: 'custom-marker',
-          html: `<div style="background:${color};width:28px;height:28px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px">🏥</div>`,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14]
+          className: 'hospital-marker',
+          html: `<div style="background:${statusColor};width:32px;height:32px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.2)">🏥</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
         });
 
         const marker = L.marker([h.lat, h.lng], { icon }).addTo(state.map);
-        
         marker.bindPopup(`
-          <div style="font-family:Inter,sans-serif">
+          <div style="font-family:Inter,sans-serif;min-width:200px">
             <strong>${h.name}</strong><br>
             <small>${h.type}</small><br>
-            🛏️ Leitos: <strong>${h.beds}</strong> | 
-            🏥 UTI: <strong>${h.icu}</strong><br>
-            💨 Oxigênio: <strong>${h.o2}%</strong><br>
-            <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${color}20;color:${color};margin-top:4px">${status.toUpperCase()}</span>
+            🛏️ ${h.beds} leitos | 🏥 UTI: ${h.icu}<br>
+            💨 O₂: ${h.o2}%<br>
+            <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${statusColor}20;color:${statusColor};margin-top:6px">${h.status.toUpperCase()}</span><br>
+            <button onclick="selectHospital('${h.id}')" style="margin-top:8px;background:#0ea5a5;color:white;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px">🗺️ Calcular Rota</button>
           </div>
         `);
-        
-        return { marker, hospital: h };
+
+        state.hospitalMarkers.push({ marker, hospital: h });
       });
     }
 
     // ===== MARCADORES DE AMBULÂNCIAS =====
     function addAmbulanceMarkers() {
-      state.ambulanceMarkers = CONFIG.ambulances.map(amb => {
+      CONFIG.ambulances.forEach(amb => {
         const icon = L.divIcon({
-          className: 'ambulance-icon',
-          html: `<div style="background:#3b82f6;width:32px;height:32px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(59,130,246,0.5);display:flex;align-items:center;justify-content:center;color:white;font-size:16px">🚑</div>`,
-          iconSize: [32, 32],
-          iconAnchor: [16, 16],
-          className: 'ambulance-icon'
+          className: 'ambulance-marker',
+          html: `<div style="background:#3b82f6;width:36px;height:36px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:18px">🚑</div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
         });
-
         const marker = L.marker([amb.lat, amb.lng], { icon, zIndexOffset: 100 }).addTo(state.map);
-        
-        marker.bindPopup(`
-          <div style="font-family:Inter,sans-serif">
-            <strong>🚑 Ambulância ${amb.id}</strong><br>
-            Tipo: ${amb.type === 'advanced' ? 'Suporte Avançado' : 'Básica'}<br>
-            Status: <strong style="color:${amb.status === 'available' ? '#22c55e' : '#f59e0b'}">${amb.status.toUpperCase()}</strong>
-          </div>
-        `);
-        
-        return { marker, ambulance: amb };
+        marker.bindPopup(`<strong>🚑 ${amb.id}</strong><br>Status: ${amb.status.toUpperCase()}`);
+        state.ambulanceMarkers.push(marker);
       });
-    }
-
-    // ===== ANIMAÇÃO DE AMBULÂNCIAS =====
-    function startAmbulanceAnimations() {
-      // Simular movimento aleatório das ambulâncias disponíveis
-      state.ambulanceAnimations = setInterval(() => {
-        CONFIG.ambulances.forEach((amb, idx) => {
-          if (amb.status === 'available' && state.ambulanceMarkers[idx]) {
-            // Movimento suave aleatório
-            const delta = 0.0005; // ~50 metros
-            amb.lat += (Math.random() - 0.5) * delta * 2;
-            amb.lng += (Math.random() - 0.5) * delta * 2;
-            
-            // Manter dentro de limites razoáveis de SP
-            amb.lat = Math.max(-23.7, Math.min(-23.4, amb.lat));
-            amb.lng = Math.max(-46.8, Math.min(-46.5, amb.lng));
-            
-            // Atualizar marcador
-            state.ambulanceMarkers[idx].marker.setLatLng([amb.lat, amb.lng]);
-          }
-        });
-      }, 2000); // Atualiza a cada 2 segundos
     }
 
     // ===== MARCADOR DO USUÁRIO =====
-    function addUserMarker(coords, label = '📍 Você está aqui') {
+    function updateUserMarker(coords) {
       if (state.userMarker) state.map.removeLayer(state.userMarker);
-      
       const icon = L.divIcon({
         className: 'user-marker',
-        html: `<div style="background:#8b5cf6;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(139,92,246,0.5)"></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
+        html: `<div style="background:#8b5cf6;width:24px;height:24px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(139,92,246,0.5)"></div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
       });
-
       state.userMarker = L.marker([coords.lat, coords.lng], { icon, zIndexOffset: 1000 })
-        .addTo(state.map)
-        .bindPopup(label)
-        .openPopup();
-      
-      state.map.setView([coords.lat, coords.lng], 14);
-      return state.userMarker;
+        .addTo(state.map).bindPopup('📍 Sua localização').openPopup();
     }
 
-    // ===== BUSCAR HOSPITAL MAIS PRÓXIMO =====
-    function findNearestHospital(coords) {
-      let nearest = null;
-      let minDist = Infinity;
-      
-      for (const h of CONFIG.hospitals) {
-        const dist = haversineDistance(coords, h);
-        if (dist < minDist) {
-          minDist = dist;
-          nearest = { ...h, distance: dist };
+    // ===== GEOLOCALIZAÇÃO =====
+    async function tryAutoGeolocate() {
+      if (!navigator.geolocation) return;
+      try {
+        const pos = await new Promise((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000 })
+        );
+        state.userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        updateUserMarker(state.userLocation);
+        state.map.setView([state.userLocation.lat, state.userLocation.lng], 14);
+        showToast('📍 Localização detectada', 'success');
+      } catch (err) {
+        console.log('Geolocalização indisponível:', err.message);
+      }
+    }
+
+    // ===== BUSCA POR CEP/ENDEREÇO =====
+    async function geocodeAddress(query) {
+      // Tenta CEP primeiro
+      const cep = query.replace(/\D/g, '');
+      if (cep.length === 8) {
+        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(`${data.logradouro}, ${data.bairro}, ${data.localidade}`)}&limit=1`, {
+            headers: { 'User-Agent': 'AuraHealthSP/1.0' }
+          });
+          const geoData = await geo.json();
+          if (geoData[0]) return { lat: parseFloat(geoData[0].lat), lng: parseFloat(geoData[0].lon) };
         }
       }
-      return nearest;
+      // Busca genérica no Nominatim
+      const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=1`, {
+        headers: { 'User-Agent': 'AuraHealthSP/1.0' }
+      });
+      const data = await geo.json();
+      if (data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      throw new Error('Endereço não encontrado');
     }
 
-    function haversineDistance(coord1, coord2) {
-      const R = 6371;
-      const dLat = (coord2.lat - coord1.lat) * Math.PI / 180;
-      const dLon = (coord2.lng - coord1.lng) * Math.PI / 180;
-      const a = Math.sin(dLat/2)**2 + Math.cos(coord1.lat*Math.PI/180)*Math.cos(coord2.lat*Math.PI/180)*Math.sin(dLon/2)**2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
+    // ===== ROTEAMENTO COM OSRM =====
+    async function calculateBestRoute(origin, destination) {
+      showRouteLoading(true);
 
-    function findAndHighlightNearestHospital(coords) {
-      const nearest = findNearestHospital(coords);
-      if (!nearest) return;
-      
-      // Highlight no mapa
-      const target = state.hospitalMarkers.find(m => m.hospital.id === nearest.id);
-      if (target) {
-        target.marker.openPopup();
-        // Efeito visual
-        target.marker.getElement()?.style.transition = 'transform 0.3s';
-        target.marker.getElement()?.style.transform = 'scale(1.2)';
-        setTimeout(() => {
-          target.marker.getElement()?.style.transform = 'scale(1)';
-        }, 500);
+      try {
+        // Coordenadas no formato OSRM: lng,lat
+        const originStr = `${origin.lng},${origin.lat}`;
+        const destStr = `${destination.lng},${destination.lat}`;
+        const url = `${CONFIG.osrmServer}${originStr};${destStr}?overview=full&geometries=geojson&steps=true&alternatives=true`;
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Erro na API OSRM');
+
+        const data = await response.json();
+        if (!data.routes || data.routes.length === 0) throw new Error('Nenhuma rota encontrada');
+
+        // Seleciona a rota mais rápida (primeira é a ótima)
+        const route = data.routes[0];
+        state.routeData = {
+          distance: (route.distance / 1000).toFixed(1),
+          duration: Math.round(route.duration / 60),
+          geometry: route.geometry,
+          steps: route.legs[0]?.steps || [],
+          destination: destination
+        };
+
+        // Remove rota anterior se existir
+        if (state.routingControl) {
+          state.map.removeControl(state.routingControl);
+          state.routingControl = null;
+        }
+
+        // Desenha a nova rota
+        state.routingControl = L.Routing.control({
+          waypoints: [L.latLng(origin), L.latLng(destination)],
+          routeWhileDragging: false,
+          showAlternatives: false,
+          fitSelectedRoutes: true,
+          lineOptions: {
+            styles: [{ color: '#0ea5a5', opacity: 0.9, weight: 5 }],
+            extendToWaypoints: true,
+            missingRouteTolerance: 0
+          },
+          createMarker: () => null, // Não cria markers padrão
+          show: false,
+          addWaypoints: false,
+          draggableWaypoints: false
+        }).addTo(state.map);
+
+        // Ajusta o mapa para mostrar a rota
+        const bounds = L.latLngBounds([origin, destination]);
+        state.map.fitBounds(bounds.pad(0.2));
+
+        // Atualiza painel de rota
+        updateRoutePanel();
+        showToast(`🗺️ Rota calculada: ${state.routeData.distance}km em ~${state.routeData.duration}min`, 'success');
+
+      } catch (err) {
+        console.error('Erro no roteamento:', err);
+        showToast('❌ Não foi possível calcular a rota. Tente novamente.', 'error');
+        // Fallback: linha reta
+        drawFallbackRoute(origin, destination);
+      } finally {
+        showRouteLoading(false);
       }
-      
-      // Desenhar rota
-      drawRoute(coords, nearest);
-      
-      // Atualizar UI
-      updateRoutePanel(nearest, coords);
-      
-      return nearest;
     }
 
-    // ===== DESENHAR ROTA =====
-    function drawRoute(from, to) {
-      if (state.routeLine) state.map.removeLayer(state.routeLine);
-      
-      // Rota simplificada (linha reta) - produção: usar OSRM
-      state.routeLine = L.polyline([[from.lat, from.lng], [to.lat, to.lng]], {
-        color: '#ef4444',
-        weight: 4,
-        opacity: 0.8,
-        dashArray: '5, 10'
+    // ===== ROTA FALLBACK (LINHA RETA) =====
+    function drawFallbackRoute(origin, destination) {
+      if (state.routingControl) {
+        state.map.removeControl(state.routingControl);
+        state.routingControl = null;
+      }
+      const distance = haversineDistance(origin, destination);
+      state.routeData = {
+        distance: distance.toFixed(1),
+        duration: Math.round((distance / 30) * 60),
+        steps: [],
+        destination: CONFIG.hospitals.find(h => h.lat === destination.lat && h.lng === destination.lng)
+      };
+      L.polyline([[origin.lat, origin.lng], [destination.lat, destination.lng]], {
+        color: '#0ea5a5', weight: 4, opacity: 0.7, dashArray: '5, 10'
       }).addTo(state.map);
-      
-      // Ajustar zoom para mostrar rota
-      state.map.fitBounds(state.routeLine.getBounds(), { padding: [50, 50] });
+      updateRoutePanel();
+      showToast('⚠️ Usando rota estimada (serviço OSRM indisponível)', 'warning');
+    }
+
+    function haversineDistance(c1, c2) {
+      const R = 6371, dLat = (c2.lat - c1.lat) * Math.PI / 180, dLon = (c2.lng - c1.lng) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(c1.lat * Math.PI / 180) * Math.cos(c2.lat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     // ===== ATUALIZAR PAINEL DE ROTA =====
-    function updateRoutePanel(hospital, from) {
-      const distance = formatDistance(hospital.distance);
-      const eta = estimateTravelTime(hospital.distance);
-      
-      document.getElementById('eta').textContent = eta;
-      document.getElementById('distance').textContent = distance;
-      document.getElementById('vehicle').textContent = '🚑 Ambulância #A-204';
-      document.getElementById('bedsCount').textContent = hospital.beds;
-      document.getElementById('icuCount').textContent = hospital.icu;
-      document.getElementById('o2Level').textContent = `${hospital.o2}%`;
-      document.getElementById('teamStatus').textContent = hospital.beds > 10 ? 'Disponível' : 'Limitada';
-      
-      document.getElementById('routeResult').classList.remove('hidden');
-      
-      // Scroll suave para o resultado em mobile
-      if (window.innerWidth < 768) {
-        document.getElementById('routeResult')?.scrollIntoView({ behavior: 'smooth' });
+    function updateRoutePanel() {
+      if (!state.routeData) return;
+      document.getElementById('routeDistance').textContent = `${state.routeData.distance} km`;
+      document.getElementById('routeTime').textContent = `${state.routeData.duration} min`;
+      document.getElementById('routeHospital').textContent = state.routeData.destination?.name || 'Destino';
+
+      // Passos da rota
+      const stepsContainer = document.getElementById('routeSteps');
+      if (state.routeData.steps && state.routeData.steps.length > 0) {
+        const steps = state.routeData.steps.slice(0, 5).map((step, i) => {
+          const instruction = step.maneuver?.instruction || `Passo ${i + 1}`;
+          const dist = step.distance > 100 ? `${(step.distance / 1000).toFixed(1)}km` : `${Math.round(step.distance)}m`;
+          return `<div class="route-step"><span class="icon">${i + 1}.</span><span>${instruction} <small style="color:var(--text-muted)">(${dist})</small></span></div>`;
+        }).join('');
+        stepsContainer.innerHTML = steps;
+      } else {
+        stepsContainer.innerHTML = '<div class="route-step"><span class="icon">→</span><span>Rota direta até o destino</span></div>';
       }
+
+      document.getElementById('routePanel').classList.add('active');
     }
 
-    function formatDistance(km) {
-      return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
-    }
+    // ===== SELECIONAR HOSPITAL =====
+    window.selectHospital = function (hospitalId) {
+      const hospital = CONFIG.hospitals.find(h => h.id === hospitalId);
+      if (!hospital) return;
 
-    function estimateTravelTime(distanceKm) {
-      const minutes = Math.round((distanceKm / 30) * 60); // 30 km/h média urbana
-      return `${Math.max(5, minutes)} min`;
-    }
+      state.selectedHospital = hospital;
 
-    // ===== GEOLOCALIZAÇÃO AUTOMÁTICA =====
-    async function tryAutoGeolocate() {
-      if (!navigator.geolocation) return;
-      
-      try {
-        // Tentar obter localização com cache de 5 minutos
-        const position = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 8000,
-            maximumAge: 300000
-          });
-        });
-        
-        const coords = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy
-        };
-        
-        state.userLocation = coords;
-        addUserMarker(coords, '📍 Localização detectada');
-        
-        // Buscar hospital mais próximo automaticamente
-        const nearest = findAndHighlightNearestHospital(coords);
-        if (nearest) {
-          showToast(`🏥 Hospital mais próximo: ${nearest.name}`, 'success');
-          document.getElementById('heroCepInput').placeholder = `✓ ${nearest.name} a ${formatDistance(nearest.distance)}`;
-        }
-        
-      } catch (err) {
-        console.log('Geolocalização não disponível ou negada:', err.message);
-        // Fallback: mostrar mensagem sutil
-        document.getElementById('liveStatus').textContent = 'Aguardando localização...';
+      // Se tiver localização do usuário, calcula rota
+      if (state.userLocation) {
+        calculateBestRoute(state.userLocation, hospital);
+      } else {
+        // Centraliza no hospital e pede para definir origem
+        state.map.setView([hospital.lat, hospital.lng], 14);
+        state.hospitalMarkers.find(m => m.hospital.id === hospitalId)?.marker.openPopup();
+        showToast('📍 Defina sua origem no mapa ou busque por CEP', 'info');
       }
+
+      // Destaca na lista
+      document.querySelectorAll('.hospital-item').forEach(el => el.classList.remove('active'));
+      document.querySelector(`[data-hospital="${hospitalId}"]`)?.classList.add('active');
+    };
+
+    // ===== CARREGAR LISTAS DE HOSPITAIS =====
+    function loadHospitals() {
+      // Selector para rotas
+      const selector = document.getElementById('hospitalSelector');
+      selector.innerHTML = CONFIG.hospitals.map(h => `
+        <div class="hospital-item" data-hospital="${h.id}" onclick="selectHospital('${h.id}')">
+          <div class="hospital-info">
+            <strong>${h.name}</strong>
+            <small>${h.type} • ${h.beds} leitos • UTI: ${h.icu}</small>
+          </div>
+          <span class="hospital-status ${h.status}">${h.status}</span>
+        </div>
+      `).join('');
+
+      // Lista completa
+      const all = document.getElementById('allHospitals');
+      all.innerHTML = CONFIG.hospitals.map(h => `
+        <div class="hospital-item" data-hospital="${h.id}">
+          <div class="hospital-info">
+            <strong>${h.name}</strong>
+            <small>🛏️ ${h.beds} | 🏥 ${h.icu} UTI | 💨 ${h.o2}% O₂</small>
+          </div>
+          <button class="hospital-action" onclick="selectHospital('${h.id}')">Rota</button>
+        </div>
+      `).join('');
     }
 
-    // ===== BUSCA POR CEP =====
-    async function searchByCep(cep) {
-      const cleanCep = cep.replace(/\D/g, '');
-      if (cleanCep.length !== 8) throw new Error('CEP inválido. Use 00000-000');
-      
-      // ViaCEP
-      const viaCep = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const address = await viaCep.json();
-      
-      if (address.erro) throw new Error('CEP não encontrado');
-      
-      // Nominatim para coordenadas
-      const geoUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(`${address.logradouro}, ${address.bairro}, ${address.localidade}`)}&limit=1`;
-      const geoRes = await fetch(geoUrl, { headers: { 'User-Agent': 'AuraHealthSP/1.0' } });
-      const geoData = await geoRes.json();
-      
-      if (!geoData.length) throw new Error('Não foi possível geocodificar o endereço');
-      
-      const coords = {
-        lat: parseFloat(geoData[0].lat),
-        lng: parseFloat(geoData[0].lon),
-        address: `${address.logradouro}, ${address.bairro} - ${address.localidade}/${address.uf}`
-      };
-      
-      return coords;
+    function loadDashboard() {
+      document.getElementById('emergencyQueue').innerHTML = `
+        <div class="hospital-item"><div class="hospital-info"><strong>UBS Vila Mariana</strong><small>Dor no peito • 58 anos</small></div><span class="hospital-status busy">ALTA</span></div>
+        <div class="hospital-item"><div class="hospital-info"><strong>Residencial Norte</strong><small>Trauma • Acidente</small></div><span class="hospital-status critical">CRÍTICA</span></div>
+      `;
+      document.getElementById('routePerformance').innerHTML = `
+        <div class="hospital-item"><div class="hospital-info"><strong>Rota #A-204 → HC</strong><small>4.2km • 12min • OSRM</small></div><span class="hospital-status available">✅ Ótima</span></div>
+        <div class="hospital-item"><div class="hospital-info"><strong>Rota #A-301 → Santa Casa</strong><small>2.8km • 8min • OSRM</small></div><span class="hospital-status available">✅ Ótima</span></div>
+      `;
     }
 
     // ===== EVENT LISTENERS =====
     function setupEventListeners() {
-      // CEP Search - Hero Map
-      document.getElementById('heroSearchCep')?.addEventListener('click', async () => {
-        const cep = document.getElementById('heroCepInput').value.trim();
-        if (!cep) return showToast('Digite um CEP válido', 'warning');
-        
+      // Calcular rota
+      document.getElementById('calculateRouteBtn')?.addEventListener('click', async () => {
+        const originInput = document.getElementById('originInput').value.trim();
+        if (!originInput) return showToast('Digite uma origem ou clique no mapa', 'warning');
+        if (!state.selectedHospital) return showToast('Selecione um hospital de destino', 'warning');
+
         try {
           showLoading(true);
-          const coords = await searchByCep(cep);
-          
-          // Atualizar UI
-          state.userLocation = coords;
-          addUserMarker(coords, `📍 ${coords.address}`);
-          document.getElementById('heroCepInput').placeholder = `✓ ${coords.address}`;
-          
-          // Encontrar hospital
-          const nearest = findAndHighlightNearestHospital(coords);
-          if (nearest) {
-            showToast(`🏥 Encontrado: ${nearest.name} (${formatDistance(nearest.distance)})`, 'success');
-          }
-          
+          const origin = await geocodeAddress(originInput);
+          await calculateBestRoute(origin, state.selectedHospital);
         } catch (err) {
           showToast('❌ ' + err.message, 'error');
         } finally {
           showLoading(false);
         }
       });
-      
-      // Enter key no input de CEP
-      document.getElementById('heroCepInput')?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          document.getElementById('heroSearchCep')?.click();
-        }
+
+      // Enter no input
+      document.getElementById('originInput')?.addEventListener('keypress', e => {
+        if (e.key === 'Enter') { e.preventDefault(); document.getElementById('calculateRouteBtn')?.click(); }
       });
-      
-      // Format CEP input
-      document.getElementById('heroCepInput')?.addEventListener('input', (e) => {
-        let value = e.target.value.replace(/\D/g, '');
-        if (value.length > 5) value = value.slice(0, 5) + '-' + value.slice(5, 8);
-        e.target.value = value;
-      });
-      
-      // Geolocation Button - Hero Map
-      document.getElementById('heroUseLocation')?.addEventListener('click', async () => {
+
+      // Geolocalização
+      document.getElementById('useLocationBtn')?.addEventListener('click', async () => {
         try {
           showLoading(true);
           await tryAutoGeolocate();
-        } finally {
-          showLoading(false);
+          if (state.userLocation && state.selectedHospital) {
+            await calculateBestRoute(state.userLocation, state.selectedHospital);
+          }
+        } finally { showLoading(false); }
+      });
+
+      // Painel de rota
+      document.getElementById('confirmRoute')?.addEventListener('click', () => {
+        showToast('✅ Rota confirmada! Ambulância despachada.', 'success');
+        document.getElementById('routePanel').classList.remove('active');
+      });
+      document.getElementById('recalculateRoute')?.addEventListener('click', () => {
+        if (state.userLocation && state.selectedHospital) {
+          calculateBestRoute(state.userLocation, state.selectedHospital);
         }
       });
-      
-      // Emergency Button
+      document.getElementById('closeRoutePanel')?.addEventListener('click', () => {
+        document.getElementById('routePanel').classList.remove('active');
+      });
+
+      // Emergência
       document.getElementById('emergencyBtn')?.addEventListener('click', () => {
         document.getElementById('emergencyModal').classList.remove('hidden');
-        if (window.socket) window.socket.emit('emergency:activate', { level: 'CRITICAL', ts: Date.now() });
       });
       document.getElementById('closeEmergency')?.addEventListener('click', () => {
         document.getElementById('emergencyModal').classList.add('hidden');
       });
-      document.getElementById('dispatchSamu')?.addEventListener('click', () => {
-        showToast('🚑 SAMU acionado com prioridade máxima!', 'success');
-      });
-      
-      // New Patient Form
-      document.getElementById('newPatientForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const patient = {
-          name: document.getElementById('patientName').value,
-          symptoms: document.getElementById('patientSymptoms').value,
-          age: parseInt(document.getElementById('patientAge').value)
-        };
-        
-        // Simular triagem IA
-        const result = simulateTriage(patient.symptoms, patient.age);
-        addQueueItem({ ...patient, ...result });
-        
-        if (window.socket) window.socket.emit('patient:register', { ...patient, priority: result.priority });
-        
-        showToast(`✅ Triagem: Prioridade ${result.priority}`, 'success');
-        e.target.reset();
-      });
-      
-      // Logistics Route Calculation
-      document.getElementById('calculateRoute')?.addEventListener('click', () => {
-        const [lat, lng] = document.getElementById('originSelect').value.split(',').map(Number);
-        const destId = document.getElementById('destinationSelect').value;
-        const hospital = CONFIG.hospitals.find(h => h.id === destId);
-        
-        if (hospital) {
-          const from = { lat, lng };
-          drawRoute(from, hospital);
-          updateRoutePanel(hospital, from);
-          showToast('🗺️ Rota calculada', 'success');
+      document.getElementById('dispatchPriority')?.addEventListener('click', async () => {
+        // Encontra hospital com melhor disponibilidade
+        const available = CONFIG.hospitals.filter(h => h.status === 'available').sort((a, b) => b.beds - a.beds);
+        if (available[0] && state.userLocation) {
+          state.selectedHospital = available[0];
+          await calculateBestRoute(state.userLocation, available[0]);
+          showToast('🚑 Rota prioritária ativada para ' + available[0].name, 'success');
         }
+        document.getElementById('emergencyModal').classList.add('hidden');
       });
-      
-      document.getElementById('dispatchVehicle')?.addEventListener('click', () => {
-        showToast('🚀 Veículo despachado!', 'success');
-        if (window.socket) window.socket.emit('logistics:dispatch', { ts: Date.now() });
-      });
-      
-      // Audit
-      document.getElementById('refreshBlocks')?.addEventListener('click', loadBlockchainBlocks);
-      document.getElementById('searchTx')?.addEventListener('click', () => {
-        const q = document.getElementById('txSearch').value;
-        if (q) showToast(`🔍 Buscando: "${q}"`, 'info');
-      });
-      
-      // Footer links
+
+      // Navegação
       document.querySelectorAll('[data-nav-link]').forEach(link => {
-        link.addEventListener('click', (e) => {
+        link.addEventListener('click', e => {
           e.preventDefault();
-          const target = e.target.getAttribute('href').substring(1);
+          const target = e.target.closest('[data-nav-link]').getAttribute('href').substring(1);
           document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
           document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
           document.querySelector(`[data-view="${target}"]`)?.classList.add('active');
           document.getElementById(target)?.classList.add('active');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
         });
       });
-      
-      // Feedback
-      document.getElementById('footerFeedback')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.getElementById('feedbackModal').classList.remove('hidden');
-      });
-      document.getElementById('closeFeedback')?.addEventListener('click', () => {
-        document.getElementById('feedbackModal').classList.add('hidden');
-      });
-      document.getElementById('feedbackForm')?.addEventListener('submit', (e) => {
-        e.preventDefault();
-        showToast('✅ Feedback enviado! Obrigado.', 'success');
-        document.getElementById('feedbackForm').reset();
-        document.getElementById('feedbackModal').classList.add('hidden');
-      });
-      
-      // Export data
-      document.getElementById('footerExportData')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showToast('📥 Exportando dados...', 'info');
-        setTimeout(() => {
-          const data = { exported: new Date().toISOString(), patients: [], triages: [] };
-          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.download = `aurahealth-export-${Date.now()}.json`;
-          a.click();
-          showToast('✅ Dados exportados!', 'success');
-        }, 1000);
-      });
-    }
-
-    // ===== NAVEGAÇÃO =====
-    function setupNavigation() {
       document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', e => {
           document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
           document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-          e.target.classList.add('active');
-          document.getElementById(e.target.dataset.view).classList.add('active');
-          
-          if (e.target.dataset.view === 'audit') loadBlockchainBlocks();
-          if (e.target.dataset.view === 'logistics' && state.map) state.map.invalidateSize();
+          e.currentTarget.classList.add('active');
+          document.getElementById(e.currentTarget.dataset.view)?.classList.add('active');
+          if (state.map) state.map.invalidateSize();
         });
       });
     }
 
-    // ===== SOCKET.IO =====
-    function setupSocketListeners() {
-      window.socket.on('patient:updated', (data) => {
-        addQueueItem(data);
-        updateStats();
-      });
-      window.socket.on('dashboard:refresh', () => loadDashboard());
-      window.socket.on('emergency:broadcast', (data) => {
-        if (data.level === 'CRITICAL') {
-          showToast('🚨 EMERGÊNCIA GLOBAL ATIVADA', 'error');
-          document.getElementById('systemStatus').className = 'status-badge offline';
-          document.getElementById('systemStatus').textContent = '● EMERGÊNCIA';
-        }
-      });
+    function setupNavigation() {
+      // Já configurado nos event listeners
     }
 
-    // ===== FUNÇÕES AUXILIARES =====
-    function simulateTriage(symptoms, age) {
-      const s = symptoms.toLowerCase();
-      let score = 0;
-      if (s.includes('dor no peito') || s.includes('peito')) score += 0.85;
-      if (s.includes('respir') || s.includes('falta de ar')) score += 0.78;
-      if (s.includes('trauma') || s.includes('acidente')) score += 0.65;
-      if (age < 2 || age > 75) score += 0.12;
-      score = Math.min(1, score);
-      
-      const priority = score >= 0.75 ? 'CRITICAL' : score >= 0.55 ? 'HIGH' : score >= 0.35 ? 'MEDIUM' : 'LOW';
-      return { score: parseFloat(score.toFixed(2)), priority };
+    // ===== UTILITÁRIOS =====
+    function showToast(msg, type = 'info') {
+      const c = document.getElementById('toastContainer'), t = document.createElement('div');
+      t.className = `toast ${type}`; t.textContent = msg;
+      t.style.cssText = 'padding:0.85rem 1.25rem;border-radius:10px;color:white;font-weight:500;box-shadow:var(--shadow-lg);margin-bottom:0.5rem;animation:slideIn 0.3s ease;max-width:320px';
+      c.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100%)'; setTimeout(() => t.remove(), 300); }, 4000);
     }
 
-    function addQueueItem(patient) {
-      const queue = document.getElementById('triageQueue');
-      const item = document.createElement('div');
-      item.className = `queue-item priority-${patient.priority?.toLowerCase() || 'low'}`;
-      item.innerHTML = `<div class="queue-info"><strong>${patient.name}</strong><small>${patient.symptoms}</small></div><span class="priority-badge priority-${patient.priority?.toLowerCase() || 'low'}">${patient.priority || 'LOW'}</span>`;
-      queue.prepend(item);
-      if (queue.children.length > 5) queue.removeChild(queue.lastChild);
-      updateStats();
-    }
+    function showLoading(s) { document.getElementById('loadingOverlay').classList.toggle('hidden', !s); }
+    function showRouteLoading(s) { document.getElementById('routeLoading').classList.toggle('active', s); }
 
-    function updateStats() {
-      const count = document.getElementById('waitingCount');
-      count.textContent = parseInt(count.textContent || '0') + 1;
-    }
-
-    function loadDashboard() {
-      document.getElementById('waitingCount').textContent = Math.floor(Math.random() * 30) + 10;
-      document.getElementById('bedsAvailable').textContent = Math.floor(Math.random() * 25) + 5;
-      document.getElementById('avgTime').textContent = (Math.random() * 5 + 6).toFixed(1) + 'min';
-      document.getElementById('txCount').textContent = (Math.random() * 500 + 1000).toFixed(0) + 'k';
-      loadHospitalCards();
-      loadTriageQueue();
-    }
-
-    function loadHospitalCards() {
-      const container = document.getElementById('hospitalsMap');
-      container.innerHTML = CONFIG.hospitals.map(h => {
-        const status = h.beds > 20 ? 'available' : h.beds > 5 ? 'busy' : 'critical';
-        return `<div class="hospital-marker ${status}"><strong>${h.name}</strong><span class="beds">${h.beds} vagas</span></div>`;
-      }).join('');
-    }
-
-    function loadTriageQueue() {
-      const queue = document.getElementById('triageQueue');
-      queue.innerHTML = `
-        <div class="queue-item priority-high"><div class="queue-info"><strong>Maria S.</strong><small>Dor no peito, sudorese</small></div><span class="priority-badge priority-high">HIGH</span></div>
-        <div class="queue-item priority-medium"><div class="queue-info"><strong>João P.</strong><small>Febre 38.5°C</small></div><span class="priority-badge priority-medium">MEDIUM</span></div>
-        <div class="queue-item priority-low"><div class="queue-info"><strong>Ana L.</strong><small>Trauma leve</small></div><span class="priority-badge priority-low">LOW</span></div>
-      `;
-    }
-
-    function loadBlockchainBlocks() {
-      const list = document.getElementById('blocksList');
-      const blocks = [
-        { index: 1542, hash: 'a3f5c9e2...', type: 'PATIENT_ADMISSION' },
-        { index: 1541, hash: 'b7d2f1a8...', type: 'TRIAGE_COMPLETE' },
-        { index: 1540, hash: 'c1e8a4b3...', type: 'CAPACITY_UPDATE' }
-      ];
-      list.innerHTML = blocks.map(b => `<div class="block-item"><strong>Bloco #${b.index}</strong><br><small class="hash">${b.hash}</small><br><small>${b.type}</small></div>`).join('');
-      
-      document.getElementById('chainStats').innerHTML = `
-        <p><strong>Blocos:</strong> ${blocks[0].index}</p>
-        <p><strong>Status:</strong> <span style="color:#22c55e">✅ Válida</span></p>
-      `;
-    }
-
-    function showToast(message, type = 'info') {
-      const container = document.getElementById('toastContainer');
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.textContent = message;
-      toast.style.cssText = 'padding:1rem 1.5rem;border-radius:8px;color:white;font-weight:500;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);margin-bottom:0.5rem;animation:slideIn 0.3s ease';
-      container.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100%)';
-        setTimeout(() => toast.remove(), 300);
-      }, 4000);
-    }
-
-    function showLoading(show) {
-      document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
-    }
-
-    // Cleanup on unload
+    // Cleanup
     window.addEventListener('beforeunload', () => {
-      if (state.ambulanceAnimations) clearInterval(state.ambulanceAnimations);
-      if (window.socket) window.socket.disconnect();
+      if (state.routingControl) state.map?.removeControl(state.routingControl);
     });
   </script>
 </body>
