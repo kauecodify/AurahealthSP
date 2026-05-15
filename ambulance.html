@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="description" content="AuraHealthSP - Central de Monitoramento da Frota de Ambulâncias" />
+    <meta name="theme-color" content="#ef4444" />
+    <title>AuraHealthSP | 🚑 Central da Frota</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        :root {
+            --primary: #ef4444;
+            --primary-dark: #dc2626;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --bg: #fef2f2;
+            --surface: #fff;
+            --text: #1f2937;
+            --text-muted: #6b7280;
+            --border: #fecaca;
+            --shadow: 0 2px 8px rgba(239, 68, 68, 0.15)
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--surface);
+            border-bottom: 2px solid var(--primary);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            flex-wrap: wrap
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary)
+        }
+
+        .fleet-badge {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.8rem
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4)
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(34, 197, 94, 0)
+            }
+        }
+
+        /* Main Layout */
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0.75rem;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 0.75rem
+        }
+
+        @media(max-width:1024px) {
+            .main {
+                grid-template-columns: 1fr
+            }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.75rem;
+            height: fit-content;
+            position: sticky;
+            top: 80px
+        }
+
+        .sidebar h4 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.4rem
+        }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin-bottom: 0.75rem
+        }
+
+        .filters input,
+        .filters select {
+            padding: 0.4rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.75rem
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem
+        }
+
+        .filter-group label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 500
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.4rem;
+            margin-bottom: 0.75rem
+        }
+
+        .stat {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem;
+            text-align: center
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary)
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted)
+        }
+
+        /* Ambulance List */
+        .ambulance-list {
+            max-height: 400px;
+            overflow-y: auto
+        }
+
+        .ambulance-item {
+            padding: 0.5rem 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 0.3rem;
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--surface)
+        }
+
+        .ambulance-item:hover,
+        .ambulance-item.active {
+            border-color: var(--primary);
+            background: #fef2f2
+        }
+
+        .ambulance-item.unavailable {
+            opacity: 0.6
+        }
+
+        .ambulance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem
+        }
+
+        .ambulance-plate {
+            font-weight: 600;
+            font-size: 0.8rem;
+            background: var(--primary);
+            color: white;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px
+        }
+
+        .ambulance-status {
+            font-size: 0.65rem;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px
+        }
+
+        .ambulance-status.available {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--success)
+        }
+
+        .ambulance-status.busy {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning)
+        }
+
+        .ambulance-status.maintenance {
+            background: rgba(100, 116, 139, 0.15);
+            color: var(--text-muted)
+        }
+
+        .ambulance-info {
+            font-size: 0.7rem;
+            color: var(--text-muted)
+        }
+
+        .ambulance-info strong {
+            color: var(--text)
+        }
+
+        .ambulance-team {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem
+        }
+
+        /* Map */
+        #ambMap {
+            height: 50vh;
+            min-height: 350px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid var(--border)
+        }
+
+        #ambMap .leaflet-container {
+            height: 100%;
+            width: 100%
+        }
+
+        /* Requests Panel */
+        .requests-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-top: 0.75rem
+        }
+
+        .requests-header {
+            padding: 0.6rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .requests-list {
+            padding: 0.5rem 0.75rem;
+            max-height: 300px;
+            overflow-y: auto
+        }
+
+        /* Request Card */
+        .request-card {
+            background: var(--bg);
+            border-left: 4px solid var(--border);
+            border-radius: 8px;
+            padding: 0.6rem;
+            margin-bottom: 0.4rem
+        }
+
+        .request-card.urgent {
+            border-left-color: var(--warning);
+            background: #fffbeb
+        }
+
+        .request-card.critical {
+            border-left-color: var(--primary);
+            background: #fef2f2;
+            animation: pulseBorder 2s infinite
+        }
+
+        @keyframes pulseBorder {
+
+            0%,
+            100% {
+                border-left-color: #ef4444
+            }
+
+            50% {
+                border-left-color: #b91c1c
+            }
+        }
+
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.3rem
+        }
+
+        .request-priority {
+            padding: 0.1rem 0.35rem;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: white
+        }
+
+        .request-priority.critical {
+            background: #ef4444
+        }
+
+        .request-priority.high {
+            background: #f59e0b
+        }
+
+        .request-priority.normal {
+            background: #22c55e
+        }
+
+        .request-info {
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem
+        }
+
+        .request-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.15rem;
+            font-size: 0.65rem;
+            color: var(--text-muted)
+        }
+
+        .request-actions {
+            display: flex;
+            gap: 0.25rem;
+            margin-top: 0.35rem
+        }
+
+        .btn {
+            padding: 0.3rem 0.6rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-weight: 500
+        }
+
+        .btn-accept {
+            background: var(--success);
+            color: white
+        }
+
+        .btn-decline {
+            background: var(--surface);
+            border: 1px solid var(--border)
+        }
+
+        .btn-nav {
+            background: var(--primary);
+            color: white
+        }
+
+        /* Log */
+        .log-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-top: 0.75rem
+        }
+
+        .log-header {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.8rem
+        }
+
+        .log-container {
+            padding: 0.4rem 0.75rem;
+            max-height: 120px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.65rem
+        }
+
+        .log-entry {
+            padding: 0.15rem 0;
+            border-bottom: 1px dashed var(--border);
+            display: flex;
+            gap: 0.25rem
+        }
+
+        .log-time {
+            color: var(--text-muted);
+            min-width: 40px;
+            font-size: 0.6rem
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: var(--success);
+            color: white;
+            padding: 0.5rem 0.9rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            animation: slideIn 0.3s ease;
+            z-index: 5000;
+            font-size: 0.75rem
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0)
+            }
+        }
+
+        /* Responsive */
+        @media(max-width:640px) {
+            .stats {
+                grid-template-columns: 1fr
+            }
+
+            .request-meta {
+                grid-template-columns: 1fr
+            }
+
+            .header {
+                flex-wrap: wrap
+            }
+
+            .filters {
+                gap: 0.3rem
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="logo">🚑 AuraHealth<span style="color:var(--text)">SP</span> <span class="fleet-badge">Frota
+                Completa</span></div>
+        <div class="status">
+            <div class="status-dot"></div><span id="statusText">🟢 Online • <span id="ambCount">0</span>
+                ambulâncias</span>
+        </div>
+        <a href="index.html" style="font-size:0.75rem;color:var(--primary);text-decoration:none">← Dashboard</a>
+    </header>
+
+    <main class="main">
+        <!-- Sidebar: Filtros + Lista de Ambulâncias -->
+        <aside class="sidebar">
+            <h4>🔍 Filtrar Frota</h4>
+            <div class="filters">
+                <div class="filter-group">
+                    <label>🔎 Buscar por placa, nome ou CPF</label>
+                    <input type="text" id="searchAmb" placeholder="Ex: ABC-1234, João, 123...">
+                </div>
+                <div class="filter-group">
+                    <label>📍 Zona</label>
+                    <select id="filterZone">
+                        <option value="all">Todas as Zonas</option>
+                        <option value="Centro">Centro</option>
+                        <option value="Zona Sul">Zona Sul</option>
+                        <option value="Zona Leste">Zona Leste</option>
+                        <option value="Zona Norte">Zona Norte</option>
+                        <option value="Zona Oeste">Zona Oeste</option>
+                        <option value="Extremo Sul">Extremo Sul</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>📊 Status</label>
+                    <select id="filterStatus">
+                        <option value="all">Todos</option>
+                        <option value="available">🟢 Disponível</option>
+                        <option value="busy">🟡 Em Atendimento</option>
+                        <option value="maintenance">⚫ Manutenção</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>🚑 Tipo</label>
+                    <select id="filterType">
+                        <option value="all">Todos</option>
+                        <option value="advanced">🔴 Suporte Avançado</option>
+                        <option value="basic">🔵 Suporte Básico</option>
+                    </select>
+                </div>
+            </div>
+
+            <h4>📊 Estatísticas</h4>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="statAvailable">0</div>
+                    <div class="stat-label">Disponíveis</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="statBusy">0</div>
+                    <div class="stat-label">Em Atendimento</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="statRequests">0</div>
+                    <div class="stat-label">Chamados</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="statCritical">0</div>
+                    <div class="stat-label">Críticos</div>
+                </div>
+            </div>
+
+            <h4>🚑 Ambulâncias (<span id="ambTotal">0</span>)</h4>
+            <div class="ambulance-list" id="ambulanceList">
+                <div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.75rem">Carregando
+                    frota...</div>
+            </div>
+        </aside>
+
+        <!-- Main Content: Mapa + Chamados -->
+        <section>
+            <!-- Map -->
+            <div id="ambMap" aria-label="Mapa da frota de ambulâncias"></div>
+
+            <!-- Active Requests -->
+            <div class="requests-panel">
+                <div class="requests-header">
+                    <span>📞 Chamados em Tempo Real</span>
+                    <span style="font-size:0.75rem;color:var(--text-muted)" id="requestCount">0 ativos</span>
+                </div>
+                <div class="requests-list" id="requestsList">
+                    <div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.75rem">📡 Aguardando
+                        chamados...</div>
+                </div>
+            </div>
+
+            <!-- Log -->
+            <div class="log-panel">
+                <div class="log-header">📋 Log de Operações</div>
+                <div class="log-container" id="logContainer"></div>
+            </div>
+        </section>
+    </main>
+
+    <div id="toastContainer"></div>
+
+    <!-- Socket.io + Leaflet -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // ===== CONFIGURAÇÃO COMPLETA DA FROTA =====
+        const CONFIG = {
+            // 🏥 Hospitais reais de SP por zona
+            hospitals: [
+                // Centro
+                { id: 'hc', name: 'Hospital das Clínicas (FMUSP)', lat: -23.5614, lng: -46.6722, zone: 'Centro', beds: 1240, icu: 180 },
+                { id: 'santa', name: 'Santa Casa de Misericórdia', lat: -23.5453, lng: -46.6425, zone: 'Centro', beds: 580, icu: 65 },
+                { id: 'santa-paula', name: 'Hospital Santa Paula', lat: -23.5750, lng: -46.6450, zone: 'Centro', beds: 310, icu: 42 },
+                { id: 'oswaldo-cruz', name: 'Hospital Oswaldo Cruz', lat: -23.5600, lng: -46.6500, zone: 'Centro', beds: 290, icu: 38 },
+
+                // Zona Sul
+                { id: 'albert-einstein', name: 'Hospital Albert Einstein', lat: -23.5730, lng: -46.6980, zone: 'Zona Sul', beds: 680, icu: 95 },
+                { id: 'sao-paulo', name: 'Hospital São Paulo (UNIFESP)', lat: -23.5989, lng: -46.6656, zone: 'Zona Sul', beds: 420, icu: 55 },
+                { id: 'dante-pazzanese', name: 'Instituto Dante Pazzanese', lat: -23.5700, lng: -46.6550, zone: 'Zona Sul', beds: 180, icu: 28 },
+                { id: 'hspe', name: 'Hospital do Servidor Público', lat: -23.5980, lng: -46.6580, zone: 'Zona Sul', beds: 340, icu: 45 },
+
+                // Zona Leste
+                { id: 'municipal-vprudente', name: 'Hospital Municipal Vila Prudente', lat: -23.5850, lng: -46.5950, zone: 'Zona Leste', beds: 195, icu: 18 },
+                { id: 'municipal-sapopemba', name: 'Hospital Municipal Sapopemba', lat: -23.6050, lng: -46.4850, zone: 'Zona Leste', beds: 140, icu: 12 },
+                { id: 'upa-vila-formosa', name: 'UPA 24h Vila Formosa', lat: -23.5600, lng: -46.5700, zone: 'Zona Leste', beds: 45, icu: 4 },
+                { id: 'municipal-ermelino', name: 'Hospital Municipal Ermelino Matarazzo', lat: -23.5250, lng: -46.4950, zone: 'Zona Leste', beds: 110, icu: 9 },
+
+                // Zona Norte
+                { id: 'municipal-vilamaria', name: 'Hospital Municipal Vila Maria', lat: -23.5100, lng: -46.6150, zone: 'Zona Norte', beds: 160, icu: 15 },
+                { id: 'upa-pirituba', name: 'UPA 24h Pirituba', lat: -23.4800, lng: -46.7100, zone: 'Zona Norte', beds: 38, icu: 3 },
+                { id: 'municipal-santana', name: 'Hospital Municipal Santana', lat: -23.5050, lng: -46.6300, zone: 'Zona Norte', beds: 210, icu: 24 },
+
+                // Zona Oeste
+                { id: 'sirio-libanes', name: 'Hospital Sírio-Libanês', lat: -23.5530, lng: -46.6580, zone: 'Zona Oeste', beds: 510, icu: 72 },
+                { id: 'moriah', name: 'Hospital Moriah', lat: -23.5450, lng: -46.6550, zone: 'Zona Oeste', beds: 160, icu: 22 },
+                { id: 'samaritano', name: 'Hospital Samaritano', lat: -23.5500, lng: -46.6650, zone: 'Zona Oeste', beds: 240, icu: 34 },
+
+                // Extremo Sul
+                { id: 'municipal-cid-deus', name: 'Hospital Municipal Cidade Deus', lat: -23.6400, lng: -46.7800, zone: 'Extremo Sul', beds: 130, icu: 10 },
+                { id: 'upa-capao', name: 'UPA 24h Capão Redondo', lat: -23.6500, lng: -46.7500, zone: 'Extremo Sul', beds: 40, icu: 3 }
+            ],
+
+            // 🚑 Frota completa de ambulâncias de SP (dados realistas)
+            ambulances: [
+                // Centro - Suporte Avançado
+                {
+                    id: 'AMB-001', plate: 'ABC-1234', type: 'advanced', zone: 'Centro', lat: -23.5550, lng: -46.6550, status: 'available',
+                    driver: { name: 'João Silva Santos', cpf: '123.456.789-00', cnh: '12345678900' },
+                    team: [{ name: 'Maria Oliveira', role: 'Enfermeira', coren: 'SP-123456' }, { name: 'Pedro Costa', role: 'Técnico', coren: 'SP-789012' }],
+                    equipment: ['Desfibrilador', 'Ventilador', 'Monitor Cardíaco', 'Bomba de Infusão']
+                },
+
+                {
+                    id: 'AMB-002', plate: 'DEF-5678', type: 'advanced', zone: 'Centro', lat: -23.5480, lng: -46.6380, status: 'busy',
+                    driver: { name: 'Carlos Eduardo Lima', cpf: '234.567.890-11', cnh: '23456789011' },
+                    team: [{ name: 'Ana Paula Ferreira', role: 'Enfermeira', coren: 'SP-234567' }, { name: 'Lucas Almeida', role: 'Técnico', coren: 'SP-890123' }],
+                    equipment: ['Desfibrilador', 'Ventilador', 'Monitor Cardíaco', 'Bomba de Infusão']
+                },
+
+                {
+                    id: 'AMB-003', plate: 'GHI-9012', type: 'basic', zone: 'Centro', lat: -23.5620, lng: -46.6490, status: 'available',
+                    driver: { name: 'Rafael Souza', cpf: '345.678.901-22', cnh: '34567890122' },
+                    team: [{ name: 'Juliana Martins', role: 'Técnica', coren: 'SP-345678' }],
+                    equipment: ['Macas', 'Oxigênio', 'Kit Trauma']
+                },
+
+                // Zona Sul
+                {
+                    id: 'AMB-004', plate: 'JKL-3456', type: 'advanced', zone: 'Zona Sul', lat: -23.5800, lng: -46.6800, status: 'available',
+                    driver: { name: 'Fernanda Lima', cpf: '456.789.012-33', cnh: '45678901233' },
+                    team: [{ name: 'Bruno Santos', role: 'Enfermeiro', coren: 'SP-456789' }, { name: 'Carla Mendes', role: 'Técnica', coren: 'SP-901234' }],
+                    equipment: ['Desfibrilador', 'Ventilador', 'Monitor Cardíaco', 'Bomba de Infusão']
+                },
+
+                {
+                    id: 'AMB-005', plate: 'MNO-7890', type: 'advanced', zone: 'Zona Sul', lat: -23.6000, lng: -46.6650, status: 'maintenance',
+                    driver: { name: 'Ricardo Alves', cpf: '567.890.123-44', cnh: '56789012344' },
+                    team: [], equipment: []
+                },
+
+                {
+                    id: 'AMB-006', plate: 'PQR-2345', type: 'basic', zone: 'Zona Sul', lat: -23.5750, lng: -46.6900, status: 'available',
+                    driver: { name: 'Amanda Rocha', cpf: '678.901.234-55', cnh: '67890123455' },
+                    team: [{ name: 'Diego Pereira', role: 'Técnico', coren: 'SP-567890' }],
+                    equipment: ['Macas', 'Oxigênio', 'Kit Trauma']
+                },
+
+                // Zona Leste
+                {
+                    id: 'AMB-007', plate: 'STU-6789', type: 'advanced', zone: 'Zona Leste', lat: -23.5400, lng: -46.5800, status: 'available',
+                    driver: { name: 'Gabriel Costa', cpf: '789.012.345-66', cnh: '78901234566' },
+                    team: [{ name: 'Larissa Souza', role: 'Enfermeira', coren: 'SP-678901' }, { name: 'Thiago Ribeiro', role: 'Técnico', coren: 'SP-012345' }],
+                    equipment: ['Desfibrilador', 'Ventilador', 'Monitor Cardíaco']
+                },
+
+                {
+                    id: 'AMB-008', plate: 'VWX-0123', type: 'basic', zone: 'Zona Leste', lat: -23.5300, lng: -46.5000, status: 'busy',
+                    driver: { name: 'Patricia Gomes', cpf: '890.123.456-77', cnh: '89012345677' },
+                    team: [{ name: 'Marcos Silva', role: 'Técnico', coren: 'SP-123450' }],
+                    equipment: ['Macas', 'Oxigênio']
+                },
+
+                {
+                    id: 'AMB-009', plate: 'YZA-4567', type: 'advanced', zone: 'Zona Leste', lat: -23.5200, lng: -46.4900, status: 'available',
+                    driver: { name: 'Vanessa Cardoso', cpf: '901.234.567-88', cnh: '90123456788' },
+                    team: [{ name: 'Felipe Teixeira', role: 'Enfermeiro', coren: 'SP-234561' }, { name: 'Aline Martins', role: 'Técnica', coren: 'SP-345672' }],
+                    equipment: ['Desfibrilador', 'Ventilador', 'Monitor Cardíaco', 'Bomba de Infusão']
+                },
+
+                // Zona Norte
+                {
+                    id: 'AMB-010', plate: 'BCD-8901', type: 'advanced', zone: 'Zona Norte', lat: -23.5000, lng: -46.6200, status: 'available',
+                    driver: { name: 'Rodrigo Ferreira', cpf: '012.345.678-99', cnh: '01234567899' },
+                    team: [{ name: 'Mariana Alves', role: 'Enfermeira', coren: 'SP-456783' }, { name: 'Lucas Correia', role: 'Técnico', coren: 'SP-567894' }],
+                    equipment: ['Desfibrilador', 'Ventilador', 'Monitor Cardíaco']
+                },
+
+                {
+                    id: 'AMB-011', plate: 'EFG-2345', type: 'basic', zone: 'Zona Norte', lat: -23.4850, lng: -46.7050, status: 'available',
+                    driver: { name: 'Camila Pinto', cpf: '123.450.789-00', cnh: '12345078900' },
+                    team: [{ name: 'João Castro', role: 'Técnico', coren: 'SP-678905' }],
+                    equipment: ['Macas', 'Oxigênio', 'Kit Trauma']
+                },
+
+                // Zona Oeste
+                {
+                    id: 'AMB-012', plate: 'HIJ-6789', type: 'advanced', zone: 'Zona Oeste', lat: -23.5500, lng: -46.6700, status: 'busy',
+                    driver: { name: 'Bruno Araújo', cpf: '234.561.890-11', cnh: '23456189011' },
+                    team: [{ name: 'Juliana Nascimento', role: 'Enfermeira', coren: 'SP-789016' }, { name: 'Rafael Freitas', role: 'Técnico', coren: 'SP-890127' }],
+                    equipment: ['Desfibrilador', 'Ventilador', 'Monitor Cardíaco', 'Bomba de Infusão']
+                },
+
+                {
+                    id: 'AMB-013', plate: 'KLM-0123', type: 'basic', zone: 'Zona Oeste', lat: -23.5400, lng: -46.6600, status: 'available',
+                    driver: { name: 'Amanda Ribeiro', cpf: '345.672.901-22', cnh: '34567290122' },
+                    team: [{ name: 'Pedro Gomes', role: 'Técnico', coren: 'SP-901238' }],
+                    equipment: ['Macas', 'Oxigênio']
+                },
+
+                // Extremo Sul
+                {
+                    id: 'AMB-014', plate: 'NOP-4567', type: 'advanced', zone: 'Extremo Sul', lat: -23.6450, lng: -46.7700, status: 'available',
+                    driver: { name: 'Carlos Mendes', cpf: '456.783.012-33', cnh: '45678301233' },
+                    team: [{ name: 'Fernanda Silva', role: 'Enfermeira', coren: 'SP-012349' }, { name: 'Lucas Costa', role: 'Técnico', coren: 'SP-123460' }],
+                    equipment: ['Desfibrilador', 'Ventilador', 'Monitor Cardíaco']
+                },
+
+                {
+                    id: 'AMB-015', plate: 'QRS-8901', type: 'basic', zone: 'Extremo Sul', lat: -23.6550, lng: -46.7450, status: 'maintenance',
+                    driver: { name: 'Ricardo Souza', cpf: '567.894.123-44', cnh: '56789412344' },
+                    team: [], equipment: []
+                }
+            ],
+
+            // Nomes e CPFs para geração dinâmica (se necessário)
+            firstNames: ['Ana', 'Carlos', 'Maria', 'João', 'Beatriz', 'Rafael', 'Juliana', 'Pedro', 'Camila', 'Lucas', 'Fernanda', 'Bruno', 'Amanda', 'Gabriel', 'Larissa', 'Diego', 'Patricia', 'Ricardo', 'Vanessa', 'Thiago', 'Mariana', 'Felipe', 'Rodrigo', 'Aline', 'Marcos'],
+            lastNames: ['Silva', 'Santos', 'Oliveira', 'Pereira', 'Costa', 'Lima', 'Alves', 'Souza', 'Ferreira', 'Rocha', 'Carvalho', 'Mendes', 'Araujo', 'Nascimento', 'Freitas', 'Ribeiro', 'Cardoso', 'Teixeira', 'Martins', 'Correia', 'Gomes', 'Pinto', 'Castro']
+        };
+
+        // ===== ESTADO GLOBAL =====
+        const state = {
+            socket: null,
+            map: null,
+            ambulanceMarkers: {},
+            hospitalMarkers: {},
+            routeLines: {},
+            requests: [],
+            activeRequests: {},
+            filters: { search: '', zone: 'all', status: 'all', type: 'all' },
+            selectedAmbulance: null
+        };
+
+        // ===== INICIALIZAÇÃO =====
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            renderAmbulanceList();
+            renderHospitals();
+            connectToBackend();
+            startAmbulanceAnimation();
+            setupEventListeners();
+            addLog('system', '🚑 Central da Frota iniciada • 15 ambulâncias online');
+            updateStats();
+        });
+
+        // ===== MAPA LEAFLET =====
+        function initMap() {
+            state.map = L.map('ambMap').setView([-23.5505, -46.6333], 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>',
+                maxZoom: 15
+            }).addTo(state.map);
+
+            // Adicionar marcadores de ambulâncias
+            renderAmbulanceMarkers();
+
+            // Clique no mapa para selecionar ambulância próxima
+            state.map.on('click', (e) => {
+                const nearest = findNearestAmbulance(e.latlng);
+                if (nearest) selectAmbulance(nearest.id);
+            });
+        }
+
+        function renderAmbulanceMarkers() {
+            CONFIG.ambulances.forEach(amb => {
+                const color = amb.status === 'available' ? '#22c55e' : amb.status === 'busy' ? '#f59e0b' : '#6b7280';
+                const typeIcon = amb.type === 'advanced' ? '🔴' : '🔵';
+
+                const icon = L.divIcon({
+                    className: 'custom',
+                    html: `<div style="background:${color};width:28px;height:28px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${typeIcon}</div>`,
+                    iconSize: [28, 28], iconAnchor: [14, 14]
+                });
+
+                const marker = L.marker([amb.lat, amb.lng], { icon }).addTo(state.map);
+                marker.bindPopup(createAmbulancePopup(amb));
+
+                state.ambulanceMarkers[amb.id] = marker;
+            });
+        }
+
+        function createAmbulancePopup(amb) {
+            const statusText = { available: '🟢 Disponível', busy: '🟡 Em Atendimento', maintenance: '⚫ Manutenção' }[amb.status];
+            const teamList = amb.team.map(m => `<small>• ${m.name} (${m.role})</small>`).join('<br>') || '<small>Sem equipe</small>';
+            const equipList = amb.equipment.slice(0, 3).join(', ') + (amb.equipment.length > 3 ? '...' : '');
+
+            return `
+        <div style="font-family:Inter,sans-serif;min-width:220px;font-size:0.75rem">
+          <strong>🚑 ${amb.plate}</strong> <small style="color:var(--text-muted)">(${amb.id})</small><br>
+          <span style="background:${amb.status === 'available' ? '#22c55e' : amb.status === 'busy' ? '#f59e0b' : '#6b7280'};color:white;padding:2px 6px;border-radius:4px;font-size:0.65rem">${statusText}</span>
+          <br><br>
+          <strong>👨‍✈️ Motorista:</strong> ${amb.driver.name}<br>
+          <small>CPF: ${amb.driver.cpf}</small><br><br>
+          <strong>👥 Equipe:</strong><br>${teamList}<br><br>
+          <strong>🧰 Equipamentos:</strong><br><small>${equipList || 'Nenhum'}</small><br><br>
+          <button onclick="selectAmbulance('${amb.id}')" style="background:#ef4444;color:white;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-size:0.7rem;margin-top:4px">📍 Centralizar</button>
+        </div>
+      `;
+        }
+
+        function renderHospitals() {
+            CONFIG.hospitals.forEach(hosp => {
+                const icon = L.divIcon({
+                    html: `<div style="background:#22c55e;width:22px;height:22px;border-radius:50%;border:2px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:11px">🏥</div>`,
+                    iconSize: [22, 22], iconAnchor: [11, 11]
+                });
+                const marker = L.marker([hosp.lat, hosp.lng], { icon }).addTo(state.map);
+                marker.bindPopup(`<strong>${hosp.name}</strong><br>🛏️ ${hosp.beds} leitos • 🏥 ${hosp.icu} UTI<br><small>${hosp.zone}</small>`);
+                state.hospitalMarkers[hosp.id] = marker;
+            });
+        }
+
+        function updateAmbulancePosition(ambId, lat, lng) {
+            const amb = CONFIG.ambulances.find(a => a.id === ambId);
+            if (amb && state.ambulanceMarkers[ambId]) {
+                amb.lat = lat; amb.lng = lng;
+                state.ambulanceMarkers[ambId].setLatLng([lat, lng]);
+            }
+        }
+
+        function drawRoute(ambId, patientCoords) {
+            if (state.routeLines[ambId]) state.map.removeLayer(state.routeLines[ambId]);
+            const amb = CONFIG.ambulances.find(a => a.id === ambId);
+            if (!amb) return;
+
+            state.routeLines[ambId] = L.polyline([[amb.lat, amb.lng], patientCoords], {
+                color: '#ef4444', weight: 3, opacity: 0.8, dashArray: '5,8'
+            }).addTo(state.map);
+
+            const bounds = L.latLngBounds([[amb.lat, amb.lng], patientCoords]);
+            state.map.fitBounds(bounds.pad(0.3));
+        }
+
+        // ===== ANIMAÇÃO DA FROTA =====
+        function startAmbulanceAnimation() {
+            setInterval(() => {
+                CONFIG.ambulances.forEach(amb => {
+                    if (amb.status === 'available' && state.ambulanceMarkers[amb.id]) {
+                        // Movimento realista dentro da zona
+                        const bounds = getZoneBounds(amb.zone);
+                        amb.lat += (Math.random() - 0.5) * 0.0015;
+                        amb.lng += (Math.random() - 0.5) * 0.0015;
+
+                        // Manter dentro dos limites da zona
+                        amb.lat = Math.max(bounds.minLat, Math.min(bounds.maxLat, amb.lat));
+                        amb.lng = Math.max(bounds.minLng, Math.min(bounds.maxLng, amb.lng));
+
+                        state.ambulanceMarkers[amb.id].setLatLng([amb.lat, amb.lng]);
+                    }
+                });
+            }, 3000);
+        }
+
+        function getZoneBounds(zone) {
+            const bounds = {
+                'Centro': { minLat: -23.58, maxLat: -23.53, minLng: -46.69, maxLng: -46.62 },
+                'Zona Sul': { minLat: -23.65, maxLat: -23.55, minLng: -46.72, maxLng: -46.63 },
+                'Zona Leste': { minLat: -23.62, maxLat: -23.50, minLng: -46.60, maxLng: -46.45 },
+                'Zona Norte': { minLat: -23.52, maxLat: -23.45, minLng: -46.73, maxLng: -46.60 },
+                'Zona Oeste': { minLat: -23.58, maxLat: -23.52, minLng: -46.70, maxLng: -46.64 },
+                'Extremo Sul': { minLat: -23.70, maxLat: -23.62, minLng: -46.80, maxLng: -46.72 }
+            };
+            return bounds[zone] || bounds['Centro'];
+        }
+
+        // ===== WEBSOCKET =====
+        function connectToBackend() {
+            state.socket = io(WS_URL, { auth: { role: 'fleet-manager' } });
+
+            state.socket.on('connect', () => {
+                document.getElementById('statusText').innerHTML = '🟢 Online • <span id="ambCount">' + CONFIG.ambulances.length + '</span> ambulâncias';
+                addLog('system', '✅ Conectado ao backend de frota');
+                showToast('🔗 Conectado à central', 'success');
+            });
+
+            state.socket.on('disconnect', () => {
+                document.getElementById('statusText').textContent = '🔴 Offline';
+                addLog('system', '❌ Desconectado do backend');
+            });
+
+            // 📞 Novo chamado para a frota
+            state.socket.on('fleet:request', (request) => {
+                state.requests.unshift(request);
+                renderRequests();
+                updateStats();
+                addLog('insert', `📞 Novo chamado: ${request.patient_name} - ${request.priority.toUpperCase()}`, request);
+
+                if (request.priority === 'critical') {
+                    playAlertSound();
+                    showToast(`🚨 CRÍTICO: ${request.patient_name} em ${request.zone}`, 'critical');
+                } else {
+                    showToast(`📞 Novo chamado: ${request.patient_name}`, 'info');
+                }
+            });
+
+            // 🚑 Atualização de posição de ambulância
+            state.socket.on('ambulance:location', (data) => {
+                if (data.ambulanceId && state.ambulanceMarkers[data.ambulanceId]) {
+                    updateAmbulancePosition(data.ambulanceId, data.lat, data.lng);
+                }
+            });
+
+            // ✅ Ambulância aceitou chamado
+            state.socket.on('ambulance:accepted', (data) => {
+                if (state.activeRequests[data.requestId]) {
+                    state.activeRequests[data.requestId].assignedAmb = data.ambulanceId;
+                    renderRequests();
+                    addLog('update', `✅ ${data.ambulanceId} aceitou chamado ${data.requestId}`);
+                }
+            });
+
+            // 🔄 Status da ambulância mudou
+            state.socket.on('ambulance:status', (data) => {
+                const amb = CONFIG.ambulances.find(a => a.id === data.ambulanceId);
+                if (amb) {
+                    amb.status = data.status;
+                    if (state.ambulanceMarkers[data.ambulanceId]) {
+                        state.ambulanceMarkers[data.ambulanceId].bindPopup(createAmbulancePopup(amb));
+                    }
+                    renderAmbulanceList();
+                    updateStats();
+                    addLog('update', `🚑 ${amb.plate}: ${data.status.toUpperCase()}`);
+                }
+            });
+        }
+
+        // ===== RENDERIZAR LISTA DE AMBULÂNCIAS =====
+        function renderAmbulanceList() {
+            const container = document.getElementById('ambulanceList');
+            const { search, zone, status, type } = state.filters;
+
+            let filtered = CONFIG.ambulances.filter(amb => {
+                if (zone !== 'all' && amb.zone !== zone) return false;
+                if (status !== 'all' && amb.status !== status) return false;
+                if (type !== 'all' && amb.type !== type) return false;
+                if (search) {
+                    const s = search.toLowerCase();
+                    return amb.plate.toLowerCase().includes(s) ||
+                        amb.driver.name.toLowerCase().includes(s) ||
+                        amb.driver.cpf.includes(s) ||
+                        amb.team.some(m => m.name.toLowerCase().includes(s));
+                }
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.7rem">Nenhuma ambulância encontrada</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(amb => {
+                const statusText = { available: '🟢 Disp', busy: '🟡 Ocup', maintenance: '⚫ Manut' }[amb.status];
+                const isActive = state.selectedAmbulance === amb.id;
+                return `
+          <div class="ambulance-item ${amb.status} ${isActive ? 'active' : ''}" onclick="selectAmbulance('${amb.id}')">
+            <div class="ambulance-header">
+              <span class="ambulance-plate">${amb.plate}</span>
+              <span class="ambulance-status ${amb.status}">${statusText}</span>
+            </div>
+            <div class="ambulance-info">
+              <strong>${amb.driver.name}</strong><br>
+              <small>📍 ${amb.zone} • ${amb.type === 'advanced' ? '🔴 Avançada' : '🔵 Básica'}</small>
+            </div>
+            <div class="ambulance-team">
+              ${amb.team.slice(0, 2).map(m => m.name.split(' ')[0]).join(', ')}${amb.team.length > 2 ? ' +' + (amb.team.length - 2) : ''}
+            </div>
+          </div>
+        `;
+            }).join('');
+
+            document.getElementById('ambTotal').textContent = filtered.length;
+        }
+
+        function selectAmbulance(ambId) {
+            state.selectedAmbulance = ambId;
+            const amb = CONFIG.ambulances.find(a => a.id === ambId);
+            if (amb && state.ambulanceMarkers[ambId]) {
+                state.map.setView([amb.lat, amb.lng], 14);
+                state.ambulanceMarkers[ambId].openPopup();
+            }
+            renderAmbulanceList();
+            addLog('system', `🔍 Selecionada: ${amb?.plate}`);
+        }
+
+        // ===== RENDERIZAR CHAMADOS =====
+        function renderRequests() {
+            const container = document.getElementById('requestsList');
+
+            if (state.requests.length === 0) {
+                container.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.75rem">📡 Aguardando chamados em tempo real...</div>`;
+                return;
+            }
+
+            container.innerHTML = state.requests.slice(0, 10).map(req => {
+                const isCritical = req.priority === 'critical';
+                const isHigh = req.priority === 'high';
+                const priorityClass = isCritical ? 'critical' : isHigh ? 'urgent' : '';
+                const priorityLabel = isCritical ? '🚨 CRÍTICO' : isHigh ? '⚠️ ALTA' : '📋 NORMAL';
+                const assigned = state.activeRequests[req.id]?.assignedAmb;
+
+                return `
+          <div class="request-card ${priorityClass}" data-request="${req.id}">
+            <div class="request-header">
+              <div>
+                <strong>${req.patient_name}</strong>
+                <small style="color:var(--text-muted)">ID: ${req.id?.slice(-8)}</small>
+              </div>
+              <span class="request-priority ${req.priority}">${priorityLabel}</span>
+            </div>
+            <div class="request-info">
+              <strong>📍</strong> ${req.address || req.zone} • <strong>⚠️</strong> Nível ${req.severity}/10
+            </div>
+            <div class="request-meta">
+              <div>🩺 ${req.symptoms?.slice(0, 25)}${req.symptoms?.length > 25 ? '...' : ''}</div>
+              <div>👤 ${req.patient_age} anos</div>
+              <div>⏰ ${new Date(req.created_at).toLocaleTimeString('pt-BR')}</div>
+              <div>${assigned ? `🚑 ${assigned}` : '📡 Aguardando'}</div>
+            </div>
+            <div class="request-actions">
+              ${!assigned ? `<button class="btn btn-accept" onclick="assignAmbulance('${req.id}')">🚑 Atribuir</button>` : ''}
+              <button class="btn btn-nav" onclick="showOnMap('${req.id}')">🗺️ Ver</button>
+            </div>
+          </div>
+        `;
+            }).join('');
+
+            document.getElementById('requestCount').textContent = `${state.requests.length} ativos`;
+        }
+
+        // ===== AÇÕES =====
+        window.assignAmbulance = function (requestId) {
+            const req = state.requests.find(r => r.id === requestId);
+            if (!req) return;
+
+            // Encontrar ambulância disponível mais próxima
+            const nearest = findNearestAvailableAmbulance({ lat: req.patient_lat, lng: req.patient_lng }, req.zone);
+
+            if (nearest) {
+                state.activeRequests[requestId] = { assignedAmb: nearest.id, timestamp: Date.now() };
+
+                state.socket?.emit('fleet:assign', {
+                    requestId,
+                    ambulanceId: nearest.id,
+                    patient: { lat: req.patient_lat, lng: req.patient_lng }
+                });
+
+                drawRoute(nearest.id, [req.patient_lat, req.patient_lng]);
+                renderRequests();
+                updateStats();
+                addLog('update', `✅ ${nearest.plate} atribuído a ${req.patient_name}`);
+                showToast(`🚑 ${nearest.plate} a caminho`, 'success');
+            } else {
+                showToast('⚠️ Nenhuma ambulância disponível na zona', 'warning');
+            }
+        };
+
+        window.showOnMap = function (requestId) {
+            const req = state.requests.find(r => r.id === requestId);
+            if (!req) return;
+            state.map.setView([req.patient_lat, req.patient_lng], 14);
+            L.marker([req.patient_lat, req.patient_lng], {
+                icon: L.divIcon({ html: `<div style="background:#ef4444;width:24px;height:24px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:14px">📍</div>`, iconSize: [24, 24] })
+            }).addTo(state.map).bindPopup(`<strong>📍 Paciente:</strong> ${req.patient_name}<br><small>${req.address || req.zone}</small>`).openPopup();
+        };
+
+        function findNearestAvailableAmbulance(coords, preferredZone) {
+            let nearest = null, minDist = Infinity;
+
+            CONFIG.ambulances.filter(a => a.status === 'available' && (preferredZone === 'all' || a.zone === preferredZone)).forEach(amb => {
+                const dist = haversineDistance(coords, amb);
+                if (dist < minDist) { minDist = dist; nearest = amb; }
+            });
+
+            return nearest;
+        }
+
+        function findNearestAmbulance(coords) {
+            let nearest = null, minDist = Infinity;
+            CONFIG.ambulances.forEach(amb => {
+                const dist = haversineDistance(coords, amb);
+                if (dist < minDist) { minDist = dist; nearest = amb; }
+            });
+            return nearest;
+        }
+
+        function haversineDistance(c1, c2) {
+            const R = 6371, dLat = (c2.lat - c1.lat) * Math.PI / 180, dLon = (c2.lng - c1.lng) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) ** 2 + Math.cos(c1.lat * Math.PI / 180) * Math.cos(c2.lat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        // ===== FILTROS =====
+        function setupEventListeners() {
+            ['searchAmb', 'filterZone', 'filterStatus', 'filterType'].forEach(id => {
+                document.getElementById(id).addEventListener('input', e => {
+                    state.filters[id.replace('filter', '').toLowerCase()] = e.target.value.toLowerCase();
+                    if (id === 'searchAmb') state.filters.search = e.target.value;
+                    renderAmbulanceList();
+                });
+                document.getElementById(id).addEventListener('change', e => {
+                    if (id.startsWith('filter')) {
+                        state.filters[id.replace('filter', '').toLowerCase()] = e.target.value;
+                        renderAmbulanceList();
+                    }
+                });
+            });
+        }
+
+        // ===== UTILITÁRIOS =====
+        function updateStats() {
+            const available = CONFIG.ambulances.filter(a => a.status === 'available').length;
+            const busy = CONFIG.ambulances.filter(a => a.status === 'busy').length;
+            const critical = state.requests.filter(r => r.priority === 'critical').length;
+
+            document.getElementById('statAvailable').textContent = available;
+            document.getElementById('statBusy').textContent = busy;
+            document.getElementById('statRequests').textContent = state.requests.length;
+            document.getElementById('statCritical').textContent = critical;
+        }
+
+        function addLog(type, msg) {
+            const entry = { time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), type, msg };
+            const container = document.getElementById('logContainer');
+            const html = `<div class="log-entry"><span class="log-time">${entry.time}</span><span class="log-type ${entry.type}">[${entry.type.toUpperCase()}]</span><span>${entry.msg}</span></div>`;
+            container.innerHTML = html + container.innerHTML;
+            if (container.children.length > 15) container.lastChild.remove();
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.background = type === 'success' ? 'var(--success)' : type === 'critical' ? '#b91c1c' : type === 'warning' ? 'var(--warning)' : 'var(--info)';
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function playAlertSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.value = 900; osc.type = 'sine';
+                gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+                osc.start(); osc.stop(ctx.currentTime + 0.4);
+            } catch (e) { }
+        }
+    </script>
+</body>
+
+</html>
