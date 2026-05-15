@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="description"
+        content="AuraHealthSP v3.6 - Notificações em tempo real, histórico persistente e exportação completa" />
+    <meta name="keywords" content="saúde, SUS, triagem, IA, tempo real, histórico, exportação, CSV, JSON" />
+    <meta name="author" content="AuraHealthSP Team" />
+    <meta name="theme-color" content="#0ea5a5" />
+    <title>AuraHealthSP DataReceived</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="images/icon-192.png" />
+
+    <style>
+        :root {
+            --primary: #0ea5a5;
+            --primary-dark: #0d9488;
+            --secondary: #6366f1;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #22c55e;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --radius: 12px;
+            --radius-lg: 20px;
+            --transition: all 0.2s ease;
+            --font: 'Inter', system-ui, -apple-system, sans-serif
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden
+        }
+
+        #app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column
+        }
+
+        .hidden {
+            display: none !important
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            backdrop-filter: blur(8px);
+            flex-wrap: wrap
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem
+        }
+
+        .logo img {
+            height: 40px;
+            width: auto;
+            border-radius: 8px
+        }
+
+        .logo-text {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text)
+        }
+
+        .logo-text span {
+            color: var(--primary)
+        }
+
+        .nav {
+            display: flex;
+            gap: 0.25rem;
+            background: var(--bg);
+            padding: 0.25rem;
+            border-radius: 10px;
+            flex-wrap: wrap
+        }
+
+        .nav-btn {
+            padding: 0.5rem 0.75rem;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.85rem
+        }
+
+        .nav-btn:hover,
+        .nav-btn.active {
+            background: var(--surface);
+            color: var(--primary);
+            box-shadow: var(--shadow)
+        }
+
+        .user-panel {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background: var(--bg);
+            color: var(--text-muted)
+        }
+
+        .status-badge.online {
+            color: var(--success)
+        }
+
+        .status-badge.online .dot {
+            background: var(--success);
+            animation: pulse 2s infinite
+        }
+
+        .status-badge.paused {
+            color: var(--warning)
+        }
+
+        .status-badge.paused .dot {
+            background: var(--warning);
+            animation: none
+        }
+
+        .status-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block
+        }
+
+        .emergency-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem
+        }
+
+        .emergency-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4)
+        }
+
+        /* Map */
+        #heroMap {
+            position: relative;
+            height: 35vh;
+            min-height: 280px;
+            width: 100%;
+            border-bottom: 1px solid var(--border)
+        }
+
+        #heroMap .leaflet-container {
+            height: 100%;
+            width: 100%;
+            border-radius: 0
+        }
+
+        .map-overlay {
+            position: absolute;
+            bottom: 0.8rem;
+            left: 0.8rem;
+            right: 0.8rem;
+            z-index: 1000;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 0.6rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 0.75rem
+        }
+
+        .map-legend {
+            position: absolute;
+            top: 0.8rem;
+            right: 0.8rem;
+            z-index: 1000;
+            background: var(--surface);
+            padding: 0.4rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            font-size: 0.65rem;
+            max-width: 180px
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            margin: 0.15rem 0
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block
+        }
+
+        /* Main */
+        .main-content {
+            flex: 1;
+            padding: 0.8rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%
+        }
+
+        .view {
+            display: none;
+            animation: fadeIn 0.3s ease
+        }
+
+        .view.active {
+            display: block
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 0.7rem
+        }
+
+        .stat-card {
+            background: var(--surface);
+            padding: 0.7rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            text-align: center
+        }
+
+        .stat-card h3 {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 0.15rem
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text)
+        }
+
+        .stat-delta {
+            font-size: 0.6rem;
+            font-weight: 500;
+            padding: 0.08rem 0.2rem;
+            border-radius: 4px;
+            margin-top: 0.1rem;
+            display: inline-block
+        }
+
+        .stat-delta.up {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success)
+        }
+
+        .stat-delta.down {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger)
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 0.7rem;
+            overflow: hidden
+        }
+
+        .panel h4 {
+            padding: 0.7rem 0.9rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            background: var(--bg);
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 0.3rem
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-weight: 500
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border)
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white
+        }
+
+        /* Severity */
+        .severity-legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+            gap: 0.2rem;
+            padding: 0.45rem 0.9rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
+            font-size: 0.55rem
+        }
+
+        .severity-item {
+            display: flex;
+            align-items: center;
+            gap: 0.2rem
+        }
+
+        .severity-badge {
+            padding: 0.08rem 0.2rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.5rem;
+            color: white;
+            min-width: 14px;
+            text-align: center
+        }
+
+        /* Forms */
+        .triage-form {
+            padding: 0.7rem 0.9rem;
+            border-bottom: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 0.35rem
+        }
+
+        .triage-form input,
+        .triage-form select,
+        .triage-form textarea {
+            padding: 0.35rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.75rem;
+            outline: none
+        }
+
+        .triage-form input:focus,
+        .triage-form select:focus,
+        .triage-form textarea:focus {
+            border-color: var(--primary)
+        }
+
+        .triage-form textarea {
+            grid-column: 1/-1;
+            min-height: 45px;
+            resize: vertical
+        }
+
+        .triage-form .submit-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.7rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer
+        }
+
+        .filters {
+            display: flex;
+            gap: 0.3rem;
+            padding: 0.45rem 0.9rem;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap
+        }
+
+        .filters select,
+        .filters input {
+            padding: 0.3rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.7rem
+        }
+
+        .filters input {
+            flex: 1;
+            min-width: 100px
+        }
+
+        /* Patient Grid */
+        .patients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 0.45rem;
+            padding: 0.45rem 0.9rem;
+            max-height: 400px;
+            overflow-y: auto
+        }
+
+        .patient-card {
+            background: var(--bg);
+            border-radius: var(--radius);
+            padding: 0.6rem;
+            border: 1px solid var(--border);
+            position: relative
+        }
+
+        .patient-card.critical {
+            border-left: 4px solid var(--danger)
+        }
+
+        .patient-card.high {
+            border-left: 4px solid var(--warning)
+        }
+
+        .patient-card.medium {
+            border-left: 4px solid:#3b82f6
+        }
+
+        .patient-card.low {
+            border-left: 4px solid var(--success)
+        }
+
+        .patient-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.25rem
+        }
+
+        .patient-info strong {
+            display: block;
+            font-weight: 600;
+            font-size: 0.85rem
+        }
+
+        .patient-info small {
+            color: var(--text-muted);
+            font-size: 0.65rem
+        }
+
+        .patient-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.15rem;
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            margin: 0.2rem 0
+        }
+
+        .patient-actions {
+            display: flex;
+            gap: 0.2rem;
+            margin-top: 0.3rem;
+            flex-wrap: wrap
+        }
+
+        .btn-tiny {
+            padding: 0.12rem 0.35rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.55rem;
+            cursor: pointer
+        }
+
+        /* Real-time Log */
+        .log-panel {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 0.7rem
+        }
+
+        .log-header {
+            padding: 0.6rem 0.9rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            background: var(--bg);
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .log-controls {
+            display: flex;
+            gap: 0.3rem
+        }
+
+        .log-container {
+            padding: 0.4rem 0.9rem;
+            max-height: 250px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.65rem
+        }
+
+        .log-entry {
+            padding: 0.2rem 0;
+            border-bottom: 1px dashed var(--border);
+            display: flex;
+            gap: 0.3rem;
+            animation: slideIn 0.2s ease
+        }
+
+        .log-entry.new {
+            background: rgba(34, 197, 94, 0.12)
+        }
+
+        .log-time {
+            color: var(--text-muted);
+            min-width: 50px;
+            font-size: 0.6rem
+        }
+
+        .log-type {
+            font-weight: 600;
+            font-size: 0.6rem
+        }
+
+        .log-type.insert {
+            color: var(--success)
+        }
+
+        .log-type.update {
+            color: var(--warning)
+        }
+
+        .log-type.export {
+            color: var(--secondary)
+        }
+
+        .log-type.system {
+            color: var(--text-muted)
+        }
+
+        /* Export Panel */
+        .export-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.7rem
+        }
+
+        @media(max-width:900px) {
+            .export-section {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .export-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 0.8rem;
+            border: 1px solid var(--border)
+        }
+
+        .export-card h5 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem
+        }
+
+        .export-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.4rem;
+            margin-bottom: 0.6rem
+        }
+
+        .export-options label {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.7rem
+        }
+
+        .export-actions {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap
+        }
+
+        .export-history {
+            max-height: 200px;
+            overflow-y: auto
+        }
+
+        .export-item {
+            padding: 0.4rem 0.6rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.7rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .export-item:last-child {
+            border-bottom: none
+        }
+
+        .export-item .size {
+            color: var(--text-muted);
+            font-size: 0.65rem
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            z-index: 5000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            max-width: 320px
+        }
+
+        .toast {
+            padding: 0.55rem 0.85rem;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.2s ease;
+            font-size: 0.75rem;
+            position: relative;
+            overflow: hidden
+        }
+
+        .toast::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--success)
+        }
+
+        .toast.success {
+            background: var(--success)
+        }
+
+        .toast.error {
+            background: var(--danger)
+        }
+
+        .toast.warning {
+            background: var(--warning);
+            color: var(--text)
+        }
+
+        .toast.info {
+            background: var(--secondary)
+        }
+
+        .toast.new-patient::before {
+            background: var(--primary)
+        }
+
+        .toast.critical::before {
+            background: var(--danger)
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0)
+            }
+        }
+
+        /* Loading */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 4000
+        }
+
+        .loading-spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        /* Responsive */
+        @media(max-width:768px) {
+            .header {
+                padding: 0.4rem 0.7rem
+            }
+
+            .nav {
+                order: 3;
+                width: 100%;
+                margin-top: 0.4rem;
+                justify-content: center
+            }
+
+            .user-panel {
+                order: 2
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr)
+            }
+
+            .triage-form {
+                grid-template-columns: 1fr
+            }
+
+            .patients-grid {
+                grid-template-columns: 1fr
+            }
+
+            .filters {
+                flex-direction: column
+            }
+
+            .panel h4 {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem
+            }
+
+            .map-overlay {
+                flex-direction: column;
+                align-items: stretch
+            }
+
+            .export-section {
+                grid-template-columns: 1fr
+            }
+        }
+
+        @media(prefers-reduced-motion:reduce) {
+            * {
+                animation: none !important;
+                transition: none !important
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <header class="header" role="banner">
+            <div class="logo">
+                <img src="https://github.com/user-attachments/assets/3779e7f6-c8b7-4c39-88d4-22a1b0dd4e60"
+                    alt="Prefeitura SP" onerror="this.style.display='none'" />
+                <span class="logo-text">AuraHealth<span>SP</span> <small
+                        style="font-size:0.6rem;color:var(--text-muted)">DataReceived</small></span>
+            </div>
+            <nav class="nav" role="navigation">
+                <button class="nav-btn active" data-view="map">🗺️ Mapa</button>
+                <button class="nav-btn" data-view="triage">🤖 Triagem</button>
+                <button class="nav-btn" data-view="patients">👥 Pacientes</button>
+                <button class="nav-btn" data-view="export">📦 Exportar</button>
+            </nav>
+            <div class="user-panel">
+                <span class="status-badge online" id="sysStatus"><span class="dot"></span><span
+                        id="statusText">Ativo</span></span>
+                <button id="emergencyBtn" class="emergency-btn">🚨 Emergência</button>
+            </div>
+        </header>
+
+        <!-- ===== MAPA ===== -->
+        <section id="map" class="view active">
+            <div id="heroMap" aria-label="Mapa em tempo real"></div>
+            <div class="map-overlay">
+                <strong>📡 Tempo Real:</strong>
+                <span id="livePatients">0 pacientes</span> •
+                <span id="liveEvents">0 eventos</span> •
+                <span id="lastSync">--:--:--</span>
+                <button class="btn-sm btn-secondary" id="refreshMap">🔄 Atualizar</button>
+            </div>
+            <div class="map-legend">
+                <strong>Legenda</strong>
+                <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span> 🏥 Disponível</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span> 🏥 Limitado</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> 🏥 Crítico</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#8b5cf6"></span> 👤 Nível 8-10</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span> 👤 Nível 4-7</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#22c55e"></span> 👤 Nível 1-3</div>
+            </div>
+        </section>
+
+        <main class="main-content" role="main">
+
+            <!-- ===== TRIAGEM ===== -->
+            <section id="triage" class="view">
+                <h2 class="sr-only">Triagem com IA</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>⚡ Processos/min</h3><span class="stat-value" id="procRate">0</span><span
+                            class="stat-delta up">▲</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>🔥 Críticos</h3><span class="stat-value" id="criticalCount">0</span><span
+                            class="stat-delta up">▲</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>📋 Fila</h3><span class="stat-value" id="queueCount">0</span><span
+                            class="stat-delta">•</span>
+                    </div>
+                    <div class="stat-card">
+                        <h3>✅ Total</h3><span class="stat-value" id="totalProcessed">0</span><span
+                            class="stat-delta up">▲</span>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h4><span>🤖 Nova Triagem</span>
+                        <div class="panel-actions"><button class="btn-sm btn-secondary"
+                                id="clearForm">🗑️</button><button class="btn-sm btn-primary" id="simulateBtn">🎲
+                                Simular</button></div>
+                    </h4>
+                    <div class="severity-legend" id="sevLegend"></div>
+                    <form class="triage-form" id="triageForm">
+                        <input type="text" id="patientName" placeholder="Nome *" required />
+                        <input type="number" id="patientAge" placeholder="Idade *" min="0" max="120" required />
+                        <select id="patientGender" required>
+                            <option value="">Sexo *</option>
+                            <option value="M">M</option>
+                            <option value="F">F</option>
+                            <option value="O">O</option>
+                        </select>
+                        <input type="text" id="patientCPF" placeholder="CPF" maxlength="14" />
+                        <select id="arrivalSource" required>
+                            <option value="">Origem *</option>
+                            <option value="ambulance">🚑 SAMU</option>
+                            <option value="walkin">🚶 Espontânea</option>
+                            <option value="transfer">🔄 Transferência</option>
+                        </select>
+                        <textarea id="patientSymptoms" placeholder="Sintomas *" required></textarea>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.3rem">
+                            <input type="text" id="vitalBP" placeholder="PA" />
+                            <input type="number" id="vitalHR" placeholder="FC" min="30" max="220" />
+                            <input type="number" id="vitalSpO2" placeholder="SpO2" min="70" max="100" />
+                        </div>
+                        <button type="submit" class="submit-btn" style="grid-column:1/-1">🔍 Triar com IA</button>
+                    </form>
+                    <div id="aiResult" class="hidden"
+                        style="padding:0.6rem 0.9rem;background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(14,165,165,0.08));border-radius:var(--radius);margin:0.4rem 0.9rem">
+                        <div style="font-weight:600;margin-bottom:0.35rem;font-size:0.8rem">🧠 Resultado IA</div>
+                        <div
+                            style="display:grid;grid-template-columns:1fr 1fr;gap:0.25rem;font-size:0.7rem;margin-bottom:0.35rem">
+                            <div>Risco: <strong id="riskPercent">0%</strong></div>
+                            <div>Nível: <strong id="riskLevel">-</strong></div>
+                            <div>Destino: <strong id="recDest">-</strong></div>
+                            <div>Tempo: <strong id="recTime">-</strong></div>
+                        </div>
+                        <div style="display:flex;gap:0.25rem">
+                            <button class="btn-sm btn-primary" id="confirmTriage">✅ Confirmar</button>
+                            <button class="btn-sm btn-secondary" id="editTriage">✏️ Editar</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== PACIENTES ===== -->
+            <section id="patients" class="view">
+                <h2 class="sr-only">Pacientes</h2>
+                <div class="panel">
+                    <h4><span>👥 Pacientes Ativos</span>
+                        <div class="panel-actions"><button class="btn-sm btn-secondary" id="toggleView">📋
+                                Tabela</button><button class="btn-sm btn-primary" id="exportQuick">📥 CSV
+                                Rápido</button></div>
+                    </h4>
+                    <div class="severity-legend" id="sevLegend2"></div>
+                    <div class="filters">
+                        <select id="filterHosp">
+                            <option value="all">🏥 Todos</option>
+                        </select>
+                        <select id="filterSeverity">
+                            <option value="all">Todos Níveis</option>
+                            <option value="high">7-10 (Crítico)</option>
+                            <option value="mid">4-6 (Urgente)</option>
+                            <option value="low">1-3 (Leve)</option>
+                        </select>
+                        <select id="filterStatus">
+                            <option value="all">Todos Status</option>
+                            <option value="waiting">Aguardando</option>
+                            <option value="in-care">Em Atendimento</option>
+                        </select>
+                        <input type="text" id="searchPatient" placeholder="🔍 Buscar..." />
+                    </div>
+                    <div id="patientsGrid" class="patients-grid" role="list"></div>
+                    <div id="patientsTable" class="hidden" style="overflow-x:auto;padding:0.4rem 0.9rem">
+                        <table id="patientsDataTable" style="width:100%;border-collapse:collapse;font-size:0.7rem">
+                            <thead>
+                                <tr>
+                                    <th
+                                        style="padding:0.4rem;text-align:left;background:var(--bg);border-bottom:2px solid var(--border)">
+                                        ID</th>
+                                    <th
+                                        style="padding:0.4rem;text-align:left;background:var(--bg);border-bottom:2px solid var(--border)">
+                                        Nome</th>
+                                    <th
+                                        style="padding:0.4rem;text-align:left;background:var(--bg);border-bottom:2px solid var(--border)">
+                                        CPF</th>
+                                    <th
+                                        style="padding:0.4rem;text-align:left;background:var(--bg);border-bottom:2px solid var(--border)">
+                                        Grav.</th>
+                                    <th
+                                        style="padding:0.4rem;text-align:left;background:var(--bg);border-bottom:2px solid var(--border)">
+                                        Status</th>
+                                    <th
+                                        style="padding:0.4rem;text-align:left;background:var(--bg);border-bottom:2px solid var(--border)">
+                                        Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== LOG EM TEMPO REAL ===== -->
+            <section id="log" class="view">
+                <h2 class="sr-only">Log de Eventos</h2>
+                <div class="log-panel">
+                    <div class="log-header">
+                        <span>📡 Eventos em Tempo Real</span>
+                        <div class="log-controls">
+                            <button class="btn-sm btn-secondary" id="clearLog">🗑️ Limpar</button>
+                            <button class="btn-sm btn-primary" id="exportLog">📥 Exportar Log</button>
+                        </div>
+                    </div>
+                    <div class="log-container" id="logContainer"></div>
+                </div>
+            </section>
+
+            <!-- ===== EXPORTAÇÃO COMPLETA ===== -->
+            <section id="export" class="view">
+                <h2 class="sr-only">Exportação</h2>
+                <div class="export-section">
+                    <div class="export-card">
+                        <h5>📦 Gerar Novo Arquivo</h5>
+                        <div class="export-options">
+                            <label><input type="checkbox" id="expPatients" checked /> Pacientes</label>
+                            <label><input type="checkbox" id="expEvents" checked /> Eventos/Log</label>
+                            <label><input type="checkbox" id="expHospitals" /> Hospitais</label>
+                            <label><input type="checkbox" id="expTriage" /> Triagens IA</label>
+                        </div>
+                        <div style="margin-bottom:0.5rem">
+                            <label style="font-size:0.7rem;font-weight:500">Formato:</label>
+                            <select id="exportFormat"
+                                style="padding:0.3rem;border:1px solid var(--border);border-radius:6px;font-size:0.7rem;margin-left:0.3rem">
+                                <option value="csv">📄 CSV (Excel)</option>
+                                <option value="json">🔧 JSON (API)</option>
+                                <option value="xlsx">📊 XLSX (Excel)</option>
+                            </select>
+                        </div>
+                        <div class="export-actions">
+                            <button class="btn-sm btn-primary" id="generateExport">🚀 Gerar e Salvar</button>
+                            <button class="btn-sm btn-secondary" id="autoExport">⚙️ Auto-Export 5min</button>
+                        </div>
+                        <div style="margin-top:0.5rem;font-size:0.65rem;color:var(--text-muted)">
+                            💡 Cada exportação é salva com timestamp único. Arquivos antigos são mantidos no histórico
+                            abaixo.
+                        </div>
+                    </div>
+
+                    <div class="export-card">
+                        <h5>📚 Histórico de Exportações</h5>
+                        <div class="export-history" id="exportHistory">
+                            <div style="padding:0.5rem;text-align:center;color:var(--text-muted);font-size:0.7rem">
+                                Nenhuma exportação ainda</div>
+                        </div>
+                        <div style="margin-top:0.5rem;display:flex;gap:0.3rem">
+                            <button class="btn-sm btn-secondary" id="clearHistory">🗑️ Limpar Histórico</button>
+                            <button class="btn-sm btn-danger" id="downloadAll">📦 Baixar Tudo (.zip)</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="footer"
+            style="background:var(--surface);border-top:1px solid var(--border);padding:0.7rem;margin-top:auto">
+            <div
+                style="max-width:1600px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.4rem;font-size:0.7rem;color:var(--text-muted)">
+                <span>&copy; <span id="year"></span> AuraHealthSP • <a href="#" style="color:var(--primary)">Termos</a>
+                    • <a href="#" style="color:var(--primary)">Privacidade</a></span>
+                <span style="color:var(--warning)">⚠️ Demo simulada • Emergências: 192</span>
+            </div>
+        </footer>
+
+        <div id="emergencyModal" class="hidden"
+            style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2000;padding:1rem">
+            <div
+                style="background:var(--surface);border-radius:var(--radius-lg);padding:1rem;max-width:380px;width:100%;box-shadow:var(--shadow-lg)">
+                <h3 style="margin:0 0 0.4rem">🚨 Protocolo Emergência</h3>
+                <p style="color:var(--text-muted);margin:0 0 0.6rem;font-size:0.8rem">Pacientes nível ≥8 serão
+                    priorizados.</p>
+                <div style="display:flex;gap:0.4rem">
+                    <button id="activateEmg" class="btn-sm btn-primary" style="flex:1">✅ Ativar</button>
+                    <button id="closeEmg" class="btn-sm btn-secondary" style="flex:1">✕ Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+        <div id="loadingOverlay" class="loading-overlay hidden">
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+
+    <script>
+        // ===== CONFIG =====
+        const CONFIG = {
+            hospitals: [
+                { id: 'hc', name: 'Hospital das Clínicas', lat: -23.5614, lng: -46.6722, beds: 1240, icu: 180, o2: 98, status: 'available', zone: 'Centro' },
+                { id: 'santa', name: 'Santa Casa', lat: -23.5453, lng: -46.6425, beds: 580, icu: 65, o2: 92, status: 'busy', zone: 'Centro' },
+                { id: 'upa-zl', name: 'UPA Zona Leste', lat: -23.5333, lng: -46.5890, beds: 45, icu: 4, o2: 90, status: 'available', zone: 'Zona Leste' },
+                { id: 'hsp-sul', name: 'Hospital São Paulo', lat: -23.5989, lng: -46.6656, beds: 420, icu: 55, o2: 94, status: 'available', zone: 'Zona Sul' },
+                { id: 'municipal', name: 'Hospital Municipal', lat: -23.5280, lng: -46.6390, beds: 205, icu: 26, o2: 93, status: 'critical', zone: 'Zona Sul' }
+            ],
+            severity: [
+                { lvl: 1, label: 'Leve', color: '#22c55e' }, { lvl: 2, label: 'Básico', color: '#4ade80' }, { lvl: 3, label: 'Moderado', color: '#86efac' },
+                { lvl: 4, label: 'Atenção', color: '#facc15' }, { lvl: 5, label: 'Observação', color: '#f59e0b' }, { lvl: 6, label: 'Urgente', color: '#fb923c' },
+                { lvl: 7, label: 'Alto Risco', color: '#f97316' }, { lvl: 8, label: 'Crítico', color: '#ef4444' }, { lvl: 9, label: 'Emergência', color: '#dc2626' }, { lvl: 10, label: 'Internação', color: '#b91c1c' }
+            ],
+            firstNames: ['Ana', 'Carlos', 'Maria', 'João', 'Beatriz', 'Rafael', 'Juliana', 'Pedro', 'Camila', 'Lucas', 'Fernanda', 'Bruno', 'Amanda', 'Gabriel', 'Larissa', 'Diego', 'Patricia', 'Ricardo', 'Vanessa', 'Thiago', 'Mariana', 'Felipe', 'Rodrigo', 'Aline', 'Marcos'],
+            lastNames: ['Silva', 'Santos', 'Oliveira', 'Pereira', 'Costa', 'Lima', 'Alves', 'Souza', 'Ferreira', 'Rocha', 'Carvalho', 'Mendes', 'Araujo', 'Nascimento', 'Freitas', 'Ribeiro', 'Cardoso', 'Teixeira', 'Martins', 'Correia', 'Gomes', 'Pinto', 'Castro']
+        };
+
+        // ===== ESTADO GLOBAL =====
+        const state = {
+            patients: [],
+            events: [], // Histórico completo de TODAS as requisições/operações
+            exports: [], // Histórico de arquivos exportados
+            map: null,
+            hospitalMarkers: [],
+            patientMarkers: [],
+            triageResult: null,
+            tableView: false,
+            isRunning: true,
+            totalProcessed: 0,
+            procRate: 0,
+            lastExportTime: null,
+            autoExportInterval: null
+        };
+
+        // ===== UTILITÁRIOS DE DADOS =====
+        function generateCPF() { let cpf = ''; for (let i = 0; i < 9; i++)cpf += Math.floor(Math.random() * 10); let sum = cpf.split('').reduce((s, n, i) => s + parseInt(n) * (10 - i), 0), d1 = 11 - (sum % 11); if (d1 >= 10) d1 = 0; cpf += d1; sum = cpf.split('').reduce((s, n, i) => s + parseInt(n) * (11 - i), 0), d2 = 11 - (sum % 11); if (d2 >= 10) d2 = 0; cpf += d2; return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'); }
+        function randomName() { return `${CONFIG.firstNames[Math.floor(Math.random() * CONFIG.firstNames.length)]} ${CONFIG.lastNames[Math.floor(Math.random() * CONFIG.lastNames.length)]}`; }
+        function randomSymptoms() { const s = ['Dor no peito', 'Febre alta', 'Trauma leve', 'Falta de ar', 'Tontura', 'Náusea', 'Dor abdominal', 'Cefaleia intensa', 'Queda', 'Queimadura', 'Convulsão', 'Hemorragia']; return s[Math.floor(Math.random() * s.length)]; }
+        function randomSeverity() { const weights = [15, 15, 15, 12, 10, 10, 8, 8, 4, 3], r = Math.random() * 100; let sum = 0; for (let i = 0; i < 10; i++) { sum += weights[i]; if (r < sum) return i + 1; } return 1; }
+        function randomHospital() { return CONFIG.hospitals[Math.floor(Math.random() * CONFIG.hospitals.length)].id; }
+        function formatTime(d) { return new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+        function formatDate(d) { return new Date(d).toLocaleDateString('pt-BR'); }
+        function generateExportFilename(prefix, type) { return `${prefix}_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.${type}`; }
+
+        // ===== INICIALIZAÇÃO =====
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('year').textContent = new Date().getFullYear();
+            renderSeverityLegends();
+            populateHospitalSelects();
+            initMap();
+            loadExportHistory();
+            startRealTimeSimulation();
+            setupEvents();
+            addEvent('system', 'Sistema iniciado - Backend simulado ativo');
+            showToast('🔗 Sistema conectado • Dados em tempo real', 'info');
+        });
+
+        function renderSeverityLegends() {
+            const html = CONFIG.severity.map(s => `<div class="severity-item"><span class="severity-badge" style="background:${s.color}">${s.lvl}</span>${s.label}</div>`).join('');
+            document.getElementById('sevLegend').innerHTML = html;
+            document.getElementById('sevLegend2').innerHTML = html;
+        }
+        function populateHospitalSelects() {
+            const opts = CONFIG.hospitals.map(h => `<option value="${h.id}">${h.name}</option>`).join('');
+            document.getElementById('filterHosp').innerHTML += opts;
+        }
+
+        // ===== MAPA LEAFLET =====
+        function initMap() {
+            state.map = L.map('heroMap').setView([-23.5505, -46.6333], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM', maxZoom: 19 }).addTo(state.map);
+            addHospitalMarkers();
+            for (let i = 0; i < 6; i++) addRandomPatientToMap(true);
+            updateMapStats();
+        }
+        function addHospitalMarkers() {
+            CONFIG.hospitals.forEach(h => {
+                const color = h.status === 'available' ? '#22c55e' : h.status === 'busy' ? '#f59e0b' : '#ef4444';
+                const icon = L.divIcon({ className: 'custom', html: `<div style="background:${color};width:26px;height:26px;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:12px">🏥</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+                const m = L.marker([h.lat, h.lng], { icon }).addTo(state.map);
+                m.bindPopup(`<strong>${h.name}</strong><br>🛏️${h.beds} • 🏥${h.icu} UTI • 💨${h.o2}%<br><span style="color:${color};font-weight:600">${h.status.toUpperCase()}</span>`);
+                state.hospitalMarkers.push(m);
+            });
+        }
+        function addPatientMarker(patient, skipNotification = false) {
+            const sev = CONFIG.severity.find(s => s.lvl === patient.severity);
+            const color = patient.severity >= 8 ? '#8b5cf6' : patient.severity >= 4 ? '#3b82f6' : '#22c55e';
+            const icon = L.divIcon({ className: 'custom', html: `<div style="background:${color};width:18px;height:18px;border-radius:50%;border:2px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3)"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
+            const hosp = CONFIG.hospitals.find(h => h.id === patient.hosp);
+            const jitter = 0.008;
+            const m = L.marker([hosp.lat + (Math.random() - 0.5) * jitter, hosp.lng + (Math.random() - 0.5) * jitter], { icon }).addTo(state.map);
+            m.bindPopup(`<strong>${patient.name}</strong><br>🆔 ${patient.id}<br>🔢 ${patient.cpf}<br>⚠️ Nível ${patient.severity}: ${sev?.label}<br>🏥 ${hosp?.name}<br>⏰ ${formatTime(patient.arrival)}`);
+            state.patientMarkers.push(m);
+            if (!skipNotification) notifyPatientArrival(patient);
+            return m;
+        }
+        function addRandomPatientToMap(skipNotification = false) {
+            const p = {
+                id: `P-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+                name: randomName(),
+                cpf: generateCPF(),
+                age: Math.floor(Math.random() * 70) + 10,
+                severity: randomSeverity(),
+                status: 'waiting',
+                hosp: randomHospital(),
+                arrival: new Date().toISOString(),
+                symptoms: randomSymptoms(),
+                vitals: { bp: `${Math.floor(Math.random() * 40) + 100}x${Math.floor(Math.random() * 20) + 70}`, hr: Math.floor(Math.random() * 40) + 70, spo2: Math.floor(Math.random() * 10) + 90, temp: (Math.random() * 3 + 36).toFixed(1) }
+            };
+            state.patients.unshift(p);
+            addPatientMarker(p, skipNotification);
+            addEvent('insert', `Novo paciente: ${p.name} (Nível ${p.severity}) - ${CONFIG.hospitals.find(h => h.id === p.hosp)?.name}`, p);
+            return p;
+        }
+        function updateMapStats() {
+            document.getElementById('livePatients').textContent = `${state.patientMarkers.length} pacientes`;
+            document.getElementById('liveEvents').textContent = `${state.events.length} eventos`;
+            document.getElementById('lastSync').textContent = formatTime(new Date());
+        }
+        document.getElementById('refreshMap').addEventListener('click', () => {
+            const count = Math.floor(Math.random() * 3) + 1;
+            for (let i = 0; i < count; i++) addRandomPatientToMap();
+            renderPatients();
+            updateStats();
+            updateMapStats();
+            showToast(`🔄 Mapa atualizado: +${count} pacientes`, 'info');
+        });
+
+        // ===== SIMULAÇÃO EM TEMPO REAL (1 segundo) =====
+        function startRealTimeSimulation() {
+            // Loop principal: 1 segundo
+            setInterval(() => {
+                if (!state.isRunning) return;
+
+                // 50% de chance de novo paciente por segundo
+                if (Math.random() < 0.5) {
+                    const p = addRandomPatientToMap();
+                    renderPatients();
+                    updateStats();
+                    updateMapStats();
+                    state.totalProcessed++;
+                    state.procRate = Math.round(state.totalProcessed / (Date.now() / 60000)) || 1;
+                    document.getElementById('procRate').textContent = state.procRate;
+                    document.getElementById('totalProcessed').textContent = state.totalProcessed;
+                }
+
+                // 15% de chance de atualização de status
+                if (Math.random() < 0.15 && state.patients.length > 0) {
+                    const waiting = state.patients.filter(p => p.status === 'waiting');
+                    if (waiting.length > 0) {
+                        const p = waiting[Math.floor(Math.random() * waiting.length)];
+                        p.status = 'in-care';
+                        addEvent('update', `Paciente ${p.name} → Em atendimento`, { patientId: p.id });
+                        renderPatients();
+                        updateStats();
+                    }
+                }
+
+                // Log de heartbeat do "backend"
+                if (Math.random() < 0.3) addEvent('system', `Heartbeat OK • Pacientes ativos: ${state.patients.filter(p => p.status === 'waiting').length}`);
+
+            }, 1000); // ← LOOP DE 1 SEGUNDO
+
+            // Auto-save de histórico a cada 2 minutos (simulando persistência)
+            setInterval(() => {
+                if (state.events.length > 0) {
+                    localStorage.setItem('aurahealth_events', JSON.stringify(state.events.slice(-500)));
+                    addEvent('system', `Histórico salvo: ${state.events.length} eventos`);
+                }
+            }, 120000);
+
+            // Carregar histórico salvo ao iniciar
+            const saved = localStorage.getItem('aurahealth_events');
+            if (saved) {
+                try {
+                    const loaded = JSON.parse(saved);
+                    state.events = loaded;
+                    renderLog();
+                    addEvent('system', `Histórico recuperado: ${loaded.length} eventos`);
+                } catch (e) { console.warn('Erro ao carregar histórico', e); }
+            }
+        }
+
+        // ===== NOTIFICAÇÕES EM TEMPO REAL =====
+        function notifyPatientArrival(patient) {
+            const sev = CONFIG.severity.find(s => s.lvl === patient.severity);
+            const hosp = CONFIG.hospitals.find(h => h.id === patient.hosp);
+            const isCritical = patient.severity >= 8;
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${isCritical ? 'critical' : 'new-patient'} ${isCritical ? '' : 'success'}`;
+            toast.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.4rem">
+          <div>
+            <strong style="display:block;margin-bottom:0.1rem">${patient.name}</strong>
+            <span style="font-size:0.65rem">🆔 ${patient.id} • ⚠️ Nível ${patient.severity}</span><br/>
+            <span style="font-size:0.65rem;color:rgba(255,255,255,0.9)">🏥 ${hosp?.name} • 📋 ${patient.symptoms?.slice(0, 25)}${patient.symptoms?.length > 25 ? '...' : ''}</span>
+          </div>
+          <span class="severity-badge" style="background:${sev?.color};font-size:0.55rem">${patient.severity}</span>
+        </div>
+      `;
+            document.getElementById('toastContainer').appendChild(toast);
+
+            // Auto-remove após 6 segundos
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 200);
+            }, 6000);
+        }
+
+        // ===== LOG DE EVENTOS EM TEMPO REAL =====
+        function addEvent(type, msg, data = null) {
+            const entry = {
+                id: `E-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                timestamp: new Date().toISOString(),
+                type, msg, data
+            };
+            state.events.unshift(entry);
+            // Manter apenas últimos 1000 eventos em memória (performance)
+            if (state.events.length > 1000) state.events.pop();
+            renderLog();
+            updateMapStats();
+            return entry;
+        }
+        function renderLog() {
+            const container = document.getElementById('logContainer');
+            // Mostrar apenas últimos 50 eventos no UI
+            const recent = state.events.slice(0, 50);
+            container.innerHTML = recent.map(entry => {
+                const time = formatTime(entry.timestamp);
+                const typeClass = entry.type;
+                return `<div class="log-entry ${recent.indexOf(entry) === 0 ? 'new' : ''}">
+          <span class="log-time">${time}</span>
+          <span class="log-type ${typeClass}">[${entry.type.toUpperCase()}]</span>
+          <span>${entry.msg}</span>
+        </div>`;
+            }).join('') || '<div style="padding:0.5rem;text-align:center;color:var(--text-muted)">Aguardando eventos...</div>';
+            // Auto-scroll para o topo (eventos mais recentes)
+            container.scrollTop = 0;
+        }
+        document.getElementById('clearLog').addEventListener('click', () => {
+            if (confirm('Limpar log visual? (Histórico completo permanece salvo)')) {
+                document.getElementById('logContainer').innerHTML = '<div style="padding:0.5rem;text-align:center;color:var(--text-muted)">Log limpo</div>';
+                showToast('🗑️ Log visual limpo', 'info');
+            }
+        });
+        document.getElementById('exportLog').addEventListener('click', () => {
+            const csv = convertEventsToCSV(state.events);
+            downloadFile(csv, generateExportFilename('events_log', 'csv'), 'text/csv');
+            addEvent('export', `Log exportado: ${state.events.length} eventos`);
+            addToExportHistory('events_log.csv', state.events.length);
+            showToast(`📥 Log exportado: ${state.events.length} eventos`, 'success');
+        });
+
+        // ===== TRIAGEM IA =====
+        document.getElementById('triageForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            showLoading(true);
+            await new Promise(r => setTimeout(r, 600));
+
+            const symptoms = document.getElementById('patientSymptoms').value.toLowerCase();
+            const age = parseInt(document.getElementById('patientAge').value);
+            const spo2 = parseInt(document.getElementById('vitalSpO2').value) || 98;
+
+            let score = 0;
+            if (symptoms.includes('peito') || symptoms.includes('cardíaco')) score += 3;
+            if (symptoms.includes('respir') || symptoms.includes('falta de ar')) score += 2.5;
+            if (symptoms.includes('trauma') || symptoms.includes('acidente')) score += 2;
+            if (age < 5 || age > 70) score += 1;
+            if (spo2 < 92) score += 2;
+            score = Math.min(10, Math.max(1, Math.round(score * 1.2)));
+
+            const sev = CONFIG.severity.find(s => s.lvl === score);
+            state.triageResult = {
+                severity: score,
+                risk: Math.min(99, Math.round(score * 9.5)),
+                destination: score >= 8 ? 'UTI Emergencial' : score >= 6 ? 'Pronto-Socorro' : 'Clínica Geral',
+                maxWait: score >= 8 ? '<5min' : score >= 6 ? '<15min' : score >= 4 ? '<30min' : 'Fila'
+            };
+
+            document.getElementById('riskPercent').textContent = `${state.triageResult.risk}%`;
+            document.getElementById('riskLevel').textContent = `Nível ${score}: ${sev.label}`;
+            document.getElementById('riskLevel').style.color = sev.color;
+            document.getElementById('recDest').textContent = state.triageResult.destination;
+            document.getElementById('recTime').textContent = state.triageResult.maxWait;
+
+            document.getElementById('aiResult').classList.remove('hidden');
+            showLoading(false);
+            addEvent('triage', `IA processou: risco ${state.triageResult.risk}% - Nível ${score}`);
+            showToast('✅ Triagem concluída', 'success');
+        });
+        document.getElementById('confirmTriage').addEventListener('click', () => {
+            if (!state.triageResult) return;
+            const p = {
+                id: `P-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+                name: document.getElementById('patientName').value,
+                cpf: document.getElementById('patientCPF').value || generateCPF(),
+                age: parseInt(document.getElementById('patientAge').value),
+                severity: state.triageResult.severity,
+                status: 'waiting',
+                hosp: 'hc',
+                arrival: new Date().toISOString(),
+                symptoms: document.getElementById('patientSymptoms').value
+            };
+            state.patients.unshift(p);
+            addPatientMarker(p);
+            renderPatients();
+            updateStats();
+            updateMapStats();
+            document.getElementById('triageForm').reset();
+            document.getElementById('aiResult').classList.add('hidden');
+            state.triageResult = null;
+            addEvent('insert', `Paciente confirmado via triagem: ${p.name} (Nível ${p.severity})`, p);
+            showToast('👤 Paciente adicionado', 'success');
+        });
+        document.getElementById('clearForm').addEventListener('click', () => { document.getElementById('triageForm').reset(); document.getElementById('aiResult').classList.add('hidden'); state.triageResult = null; });
+        document.getElementById('simulateBtn').addEventListener('click', () => {
+            document.getElementById('patientName').value = randomName();
+            document.getElementById('patientCPF').value = generateCPF();
+            document.getElementById('patientAge').value = Math.floor(Math.random() * 60) + 20;
+            document.getElementById('patientGender').value = ['M', 'F'][Math.floor(Math.random() * 2)];
+            document.getElementById('arrivalSource').value = ['ambulance', 'walkin', 'transfer'][Math.floor(Math.random() * 3)];
+            document.getElementById('patientSymptoms').value = randomSymptoms();
+            document.getElementById('vitalBP').value = `${Math.floor(Math.random() * 40) + 100}x${Math.floor(Math.random() * 20) + 70}`;
+            document.getElementById('vitalHR').value = Math.floor(Math.random() * 40) + 70;
+            document.getElementById('vitalSpO2').value = Math.floor(Math.random() * 10) + 90;
+            showToast('🎲 Dados simulados', 'info');
+        });
+
+        // ===== PACIENTES =====
+        function renderPatients() {
+            const grid = document.getElementById('patientsGrid');
+            const table = document.getElementById('patientsDataTable').querySelector('tbody');
+            const hosp = document.getElementById('filterHosp').value;
+            const sev = document.getElementById('filterSeverity').value;
+            const status = document.getElementById('filterStatus').value;
+            const search = document.getElementById('searchPatient').value.toLowerCase();
+
+            let filtered = state.patients;
+            if (hosp !== 'all') filtered = filtered.filter(p => p.hosp === hosp);
+            if (sev === 'high') filtered = filtered.filter(p => p.severity >= 7);
+            else if (sev === 'mid') filtered = filtered.filter(p => p.severity >= 4 && p.severity <= 6);
+            else if (sev === 'low') filtered = filtered.filter(p => p.severity <= 3);
+            if (status !== 'all') filtered = filtered.filter(p => p.status === status);
+            if (search) filtered = filtered.filter(p => p.name.toLowerCase().includes(search) || p.id.toLowerCase().includes(search) || p.cpf?.includes(search));
+
+            // Grid
+            grid.innerHTML = filtered.slice(0, 24).map(p => {
+                const sev = CONFIG.severity.find(s => s.lvl === p.severity);
+                const hospName = CONFIG.hospitals.find(h => h.id === p.hosp)?.name;
+                return `<div class="patient-card ${p.severity >= 8 ? 'critical' : p.severity >= 6 ? 'high' : p.severity >= 4 ? 'medium' : 'low'}">
+          <div class="patient-header">
+            <div class="patient-info"><strong>${p.name}</strong><small>${p.id}</small></div>
+            <span class="severity-badge" style="background:${sev?.color}">${p.severity}</span>
+          </div>
+          <div class="patient-meta">
+            <div>🔢 ${p.cpf?.slice(0, 14)}</div><div>🏥 ${hospName}</div>
+            <div>⏰ ${formatTime(p.arrival)}</div><div>🔖 ${p.status === 'waiting' ? 'Aguardando' : 'Em Atendimento'}</div>
+          </div>
+          <div class="patient-actions">
+            <button class="btn-tiny btn-primary" onclick="viewDetails('${p.id}')">👁️</button>
+            <button class="btn-tiny btn-secondary" onclick="exportPatient('${p.id}')">📥</button>
+            ${p.status === 'waiting' ? '<button class="btn-tiny" style="background:var(--success);color:white" onclick="admitPatient(\'${p.id}\')">✅</button>' : ''}
+          </div>
+        </div>`;
+            }).join('') || '<div style="padding:0.8rem;text-align:center;color:var(--text-muted)">Nenhum paciente</div>';
+
+            // Table
+            table.innerHTML = filtered.slice(0, 50).map(p => {
+                const sev = CONFIG.severity.find(s => s.lvl === p.severity);
+                return `<tr>
+          <td style="padding:0.4rem"><strong>${p.id}</strong></td>
+          <td style="padding:0.4rem">${p.name}</td>
+          <td style="padding:0.4rem">${p.cpf}</td>
+          <td style="padding:0.4rem"><span class="badge badge-severity" style="background:${sev?.color}">${p.severity}</span></td>
+          <td style="padding:0.4rem"><span class="badge badge-status">${p.status}</span></td>
+          <td style="padding:0.4rem"><button class="btn-tiny btn-primary" onclick="viewDetails('${p.id}')">👁️</button></td>
+        </tr>`;
+            }).join('') || '<tr><td colspan="6" style="padding:1rem;text-align:center;color:var(--text-muted)">Nenhum registro</td></tr>';
+        }
+        window.viewDetails = function (id) { const p = state.patients.find(x => x.id === id); if (!p) return; const sev = CONFIG.severity.find(s => s.lvl === p.severity); showToast(`📋 ${p.name} • Nível ${p.severity} • ${p.symptoms?.slice(0, 35)}`, 'info'); };
+        window.exportPatient = function (id) { const p = state.patients.find(x => x.id === id); if (!p) return; const csv = `ID,Nome,CPF,Idade,Gravidade,Status,Hospital,Chegada,Sintomas\n"${p.id}","${p.name}","${p.cpf}",${p.age},${p.severity},"${p.status}","${CONFIG.hospitals.find(h => h.id === p.hosp)?.name}","${p.arrival}","${(p.symptoms || '').replace(/"/g, '""')}"`; downloadFile(csv, `paciente_${p.id}.csv`, 'text/csv'); addEvent('export', `Paciente exportado: ${p.name}`); showToast('📥 Exportado', 'success'); };
+        window.admitPatient = function (id) { const p = state.patients.find(x => x.id === id); if (!p) return; p.status = 'in-care'; renderPatients(); updateStats(); addEvent('update', `${p.name} → Em atendimento`); showToast(`✅ ${p.name} admitido`, 'success'); };
+        ['filterHosp', 'filterSeverity', 'filterStatus', 'searchPatient'].forEach(id => { document.getElementById(id).addEventListener('input', renderPatients); document.getElementById(id).addEventListener('change', renderPatients); });
+        document.getElementById('toggleView').addEventListener('click', function () { state.tableView = !state.tableView; document.getElementById('patientsGrid').classList.toggle('hidden', state.tableView); document.getElementById('patientsTable').classList.toggle('hidden', !state.tableView); this.textContent = state.tableView ? '📋 Cards' : '📊 Tabela'; });
+        document.getElementById('exportQuick').addEventListener('click', () => {
+            const csv = convertPatientsToCSV(state.patients);
+            downloadFile(csv, generateExportFilename('patients_quick', 'csv'), 'text/csv');
+            addEvent('export', `Exportação rápida: ${state.patients.length} pacientes`);
+            addToExportHistory('patients_quick.csv', state.patients.length);
+            showToast(`📥 Exportado ${state.patients.length} pacientes`, 'success');
+        });
+
+        // ===== EXPORTAÇÃO COMPLETA COM HISTÓRICO =====
+        function convertPatientsToCSV(patients) {
+            const headers = ['ID', 'Nome', 'CPF', 'Idade', 'Sexo', 'Gravidade', 'Status', 'Hospital', 'Chegada', 'Sintomas', 'PA', 'FC', 'SpO2', 'Temp'];
+            const rows = [headers.join(',')];
+            patients.forEach(p => {
+                const hosp = CONFIG.hospitals.find(h => h.id === p.hosp)?.name || p.hosp;
+                const v = p.vitals || {};
+                rows.push([`"${p.id}"`, `"${p.name}"`, `"${p.cpf || ''}"`, p.age || '', p.gender || '', p.severity || '', `"${p.status}"`, `"${hosp}"`, `"${p.arrival}"`, `"${(p.symptoms || '').replace(/"/g, '""')}"`, `"${v.bp || ''}"`, `"${v.hr || ''}"`, `"${v.spo2 || ''}"`, `"${v.temp || ''}"`].join(','));
+            });
+            return rows.join('\n');
+        }
+        function convertEventsToCSV(events) {
+            const headers = ['Timestamp', 'Tipo', 'Mensagem', 'ID_Paciente', 'Hospital', 'Gravidade'];
+            const rows = [headers.join(',')];
+            events.forEach(e => {
+                const d = e.data || {};
+                const hosp = d.hosp ? CONFIG.hospitals.find(h => h.id === d.hosp)?.name : '';
+                rows.push([`"${e.timestamp}"`, `"${e.type}"`, `"${e.msg.replace(/"/g, '""')}"`, `"${d.id || d.patientId || ''}"`, `"${hosp || ''}"`, `"${d.severity || ''}"`].join(','));
+            });
+            return rows.join('\n');
+        }
+        function generateCompleteExport(options) {
+            const data = {};
+            if (options.patients) data.patients = state.patients;
+            if (options.events) data.events = state.events;
+            if (options.hospitals) data.hospitals = CONFIG.hospitals;
+            if (options.triage) data.triage_logs = state.events.filter(e => e.type === 'triage');
+
+            if (options.format === 'json') {
+                return JSON.stringify({ exported: new Date().toISOString(), ...data }, null, 2);
+            } else if (options.format === 'xlsx' || options.format === 'csv') {
+                // Para demo: gerar CSV concatenado com seções
+                let csv = `# AuraHealthSP Export - ${new Date().toISOString()}\n`;
+                if (options.patients) {
+                    csv += `\n## PACIENTES\n${convertPatientsToCSV(state.patients)}\n`;
+                }
+                if (options.events) {
+                    csv += `\n## EVENTOS\n${convertEventsToCSV(state.events)}\n`;
+                }
+                return csv;
+            }
+            return JSON.stringify(data);
+        }
+        function downloadFile(content, filename, mimeType = 'text/csv') {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        function addToExportHistory(filename, count) {
+            const entry = { filename, timestamp: new Date().toISOString(), count, size: Math.round((new Blob([filename]).size + count * 200) / 1024 * 10) / 10 + ' KB' };
+            state.exports.unshift(entry);
+            if (state.exports.length > 20) state.exports.pop();
+            // Salvar histórico no localStorage
+            localStorage.setItem('aurahealth_exports', JSON.stringify(state.exports));
+            renderExportHistory();
+        }
+        function loadExportHistory() {
+            const saved = localStorage.getItem('aurahealth_exports');
+            if (saved) {
+                try { state.exports = JSON.parse(saved); renderExportHistory(); } catch (e) { }
+            }
+        }
+        function renderExportHistory() {
+            const container = document.getElementById('exportHistory');
+            if (state.exports.length === 0) {
+                container.innerHTML = '<div style="padding:0.5rem;text-align:center;color:var(--text-muted);font-size:0.7rem">Nenhuma exportação ainda</div>';
+                return;
+            }
+            container.innerHTML = state.exports.map(e => `
+        <div class="export-item">
+          <div>
+            <div style="font-weight:500">${e.filename}</div>
+            <div style="font-size:0.6rem;color:var(--text-muted)">${formatDate(e.timestamp)} ${formatTime(e.timestamp)} • ${e.count} registros</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.3rem">
+            <span class="size">${e.size}</span>
+            <button class="btn-tiny btn-secondary" onclick="reDownload('${e.filename}')">⬇️</button>
+          </div>
+        </div>
+      `).join('');
+        }
+        window.reDownload = function (filename) {
+            // Em produção: buscar do servidor. Aqui: simular re-download
+            showToast(`📥 Re-baixando ${filename}...`, 'info');
+            setTimeout(() => {
+                const content = `# Re-download simulado: ${filename}\n# Dados originais mantidos no histórico`;
+                downloadFile(content, filename, 'text/plain');
+                showToast('✅ Download concluído', 'success');
+            }, 500);
+        };
+        document.getElementById('generateExport').addEventListener('click', () => {
+            showLoading(true);
+            setTimeout(() => {
+                const options = {
+                    patients: document.getElementById('expPatients').checked,
+                    events: document.getElementById('expEvents').checked,
+                    hospitals: document.getElementById('expHospitals').checked,
+                    triage: document.getElementById('expTriage').checked,
+                    format: document.getElementById('exportFormat').value
+                };
+                const content = generateCompleteExport(options);
+                const filename = generateExportFilename('aurahealth_complete', options.format === 'json' ? 'json' : 'csv');
+                const mime = options.format === 'json' ? 'application/json' : 'text/csv';
+                downloadFile(content, filename, mime);
+                const totalRecords = (options.patients ? state.patients.length : 0) + (options.events ? state.events.length : 0);
+                addEvent('export', `Exportação completa: ${totalRecords} registros • ${filename}`);
+                addToExportHistory(filename, totalRecords);
+                showLoading(false);
+                showToast(`📥 Exportado: ${filename} (${totalRecords} registros)`, 'success');
+            }, 300);
+        });
+        document.getElementById('autoExport').addEventListener('click', function () {
+            if (state.autoExportInterval) {
+                clearInterval(state.autoExportInterval);
+                state.autoExportInterval = null;
+                this.textContent = '⚙️ Auto-Export 5min';
+                this.classList.remove('btn-primary');
+                this.classList.add('btn-secondary');
+                showToast('⏹ Auto-export pausado', 'info');
+                addEvent('system', 'Auto-export desativado');
+            } else {
+                state.autoExportInterval = setInterval(() => {
+                    const options = { patients: true, events: true, hospitals: false, triage: false, format: 'csv' };
+                    const content = generateCompleteExport(options);
+                    const filename = generateExportFilename('aurahealth_auto', 'csv');
+                    downloadFile(content, filename, 'text/csv');
+                    addToExportHistory(filename, state.patients.length + state.events.length);
+                    addEvent('export', `Auto-export: ${filename}`);
+                    showToast('🔄 Auto-export realizado', 'info');
+                }, 300000); // 5 minutos
+                this.textContent = '⏹ Parar Auto-Export';
+                this.classList.remove('btn-secondary');
+                this.classList.add('btn-primary');
+                showToast('⚙️ Auto-export ativado (5min)', 'success');
+                addEvent('system', 'Auto-export ativado - intervalo: 5min');
+            }
+        });
+        document.getElementById('clearHistory').addEventListener('click', () => {
+            if (confirm('Limpar histórico de exportações? (Arquivos já baixados não são afetados)')) {
+                state.exports = [];
+                localStorage.removeItem('aurahealth_exports');
+                renderExportHistory();
+                addEvent('system', 'Histórico de exportações limpo');
+                showToast('🗑️ Histórico limpo', 'info');
+            }
+        });
+        document.getElementById('downloadAll').addEventListener('click', () => {
+            showToast('📦 Preparando pacote completo...', 'info');
+            setTimeout(() => {
+                // Simular ZIP: concatenar todos os dados em um JSON grande
+                const allData = {
+                    metadata: { exported: new Date().toISOString(), version: '3.6', totalPatients: state.patients.length, totalEvents: state.events.length },
+                    patients: state.patients,
+                    events: state.events,
+                    hospitals: CONFIG.hospitals,
+                    severity_scale: CONFIG.severity
+                };
+                const content = JSON.stringify(allData, null, 2);
+                const filename = `aurahealth_full_backup_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`;
+                downloadFile(content, filename, 'application/json');
+                addEvent('export', `Backup completo exportado: ${filename}`);
+                addToExportHistory(filename, state.patients.length + state.events.length);
+                showToast(`✅ Backup completo: ${filename}`, 'success');
+            }, 800);
+        });
+
+        // ===== CONTROLES GERAIS =====
+        function updateStats() {
+            document.getElementById('criticalCount').textContent = state.patients.filter(p => p.severity >= 8).length;
+            document.getElementById('queueCount').textContent = state.patients.filter(p => p.status === 'waiting').length;
+        }
+        function setupEvents() {
+            // Navegação
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+                    document.getElementById(e.currentTarget.dataset.view).classList.add('active');
+                    if (e.currentTarget.dataset.view === 'patients') renderPatients();
+                    if (e.currentTarget.dataset.view === 'log') renderLog();
+                    if (e.currentTarget.dataset.view === 'export') renderExportHistory();
+                });
+            });
+
+            // Emergência
+            document.getElementById('emergencyBtn').addEventListener('click', () => document.getElementById('emergencyModal').classList.remove('hidden'));
+            document.getElementById('closeEmg').addEventListener('click', () => document.getElementById('emergencyModal').classList.add('hidden'));
+            document.getElementById('activateEmg').addEventListener('click', () => {
+                state.patients.forEach(p => { if (p.severity >= 8 && p.status === 'waiting') p.status = 'in-care'; });
+                renderPatients();
+                updateStats();
+                document.getElementById('emergencyModal').classList.add('hidden');
+                addEvent('update', 'Protocolo emergência: críticos priorizados');
+                showToast('🚨 Protocolo ativado - Críticos priorizados', 'success');
+            });
+
+            // Pausar/Retomar simulação
+            document.getElementById('sysStatus').addEventListener('click', function () {
+                state.isRunning = !state.isRunning;
+                const badge = this;
+                const text = document.getElementById('statusText');
+                if (state.isRunning) {
+                    badge.className = 'status-badge online';
+                    text.textContent = 'Ativo';
+                    addEvent('system', 'Simulação retomada');
+                    showToast('▶ Simulação retomada', 'info');
+                } else {
+                    badge.className = 'status-badge paused';
+                    text.textContent = 'Pausado';
+                    addEvent('system', 'Simulação pausada');
+                    showToast('⏸ Simulação pausada', 'warning');
+                }
+            });
+
+            // CPF mask
+            document.getElementById('patientCPF').addEventListener('input', function (e) { let v = e.target.value.replace(/\D/g, ''); v = v.replace(/(\d{3})(\d)/, '$1.$2'); v = v.replace(/(\d{3})(\d)/, '$1.$2'); v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2'); e.target.value = v; });
+        }
+        function showLoading(s) { document.getElementById('loadingOverlay').classList.toggle('hidden', !s); }
+        function showToast(msg, type = 'info') { const c = document.getElementById('toastContainer'), t = document.createElement('div'); t.className = `toast ${type}`; t.innerHTML = `<div>${msg}</div>`; t.style.cssText = 'animation:slideIn 0.2s ease;padding:0.55rem 0.85rem;border-radius:10px;color:white;font-weight:500;box-shadow:var(--shadow-lg);margin-bottom:0.3rem;font-size:0.75rem;position:relative;overflow:hidden'; if (type !== 'info') t.style.setProperty('--toast-bg', `var(--${type})`); c.appendChild(t); setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(100%)'; setTimeout(() => t.remove(), 200); }, type === 'critical' ? 8000 : 4000); }
+    </script>
+</body>
+
+</html>
