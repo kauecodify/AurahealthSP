@@ -70,7 +70,7 @@ em dev...
 
 ## 📄 Licença
 
-Distribuído sob a licença **MIT**. Veja `LICENSE` para mais informações.
+sob a licença...
 
 ```
 Copyright (c) 2026 AuraHealthSP
