@@ -1349,23 +1349,59 @@
 
   <script>
     // ===== CONFIGURAÇÃO =====
-    const CONFIG = {
-      mapCenter: [-23.5505, -46.6333],
-      mapZoom: 12,
-      osrmServer: 'https://router.project-osrm.org/route/v1/driving/',
-      hospitals: [
-        { id: 'hc', name: 'Hospital das Clínicas', lat: -23.5614, lng: -46.6722, beds: 42, icu: 8, o2: 98, type: 'HOSPITAL', status: 'available' },
-        { id: 'santa', name: 'Santa Casa', lat: -23.5453, lng: -46.6425, beds: 18, icu: 3, o2: 87, type: 'HOSPITAL', status: 'busy' },
-        { id: 'upa-zl', name: 'UPA Zona Leste', lat: -23.5333, lng: -46.5890, beds: 5, icu: 1, o2: 72, type: 'UPA', status: 'critical' },
-        { id: 'hsp-sul', name: 'Hospital São Paulo', lat: -23.5989, lng: -46.6656, beds: 35, icu: 6, o2: 94, type: 'HOSPITAL', status: 'available' },
-        { id: 'municipal', name: 'Hospital Municipal', lat: -23.5280, lng: -46.6390, beds: 28, icu: 4, o2: 89, type: 'HOSPITAL', status: 'available' }
-      ],
-      ambulances: [
-        { id: 'A-204', lat: -23.5550, lng: -46.6550, status: 'available' },
-        { id: 'A-118', lat: -23.5400, lng: -46.6300, status: 'busy' },
-        { id: 'A-301', lat: -23.5600, lng: -46.6700, status: 'available' }
-      ]
-    };
+const CONFIG = {
+  mapCenter: [-23.5505, -46.6333],
+  mapZoom: 11,
+  osrmServer: 'https://router.project-osrm.org/route/v1/driving/',
+
+  hospitals: [
+    { id: 'hc', name: 'Hospital das Clínicas', lat: -23.5614, lng: -46.6722, beds: 42, icu: 8, o2: 98, type: 'HOSPITAL', status: 'available' },
+
+    { id: 'santa', name: 'Santa Casa de São Paulo', lat: -23.5453, lng: -46.6425, beds: 18, icu: 3, o2: 87, type: 'HOSPITAL', status: 'busy' },
+
+    { id: 'hsp', name: 'Hospital São Paulo', lat: -23.5989, lng: -46.6656, beds: 35, icu: 6, o2: 94, type: 'HOSPITAL', status: 'available' },
+
+    { id: 'sirio', name: 'Hospital Sírio-Libanês', lat: -23.5577, lng: -46.6581, beds: 30, icu: 7, o2: 96, type: 'HOSPITAL', status: 'available' },
+
+    { id: 'einstein', name: 'Hospital Albert Einstein', lat: -23.6008, lng: -46.7158, beds: 55, icu: 14, o2: 99, type: 'HOSPITAL', status: 'available' },
+
+    { id: 'beneficencia', name: 'Beneficência Portuguesa', lat: -23.5694, lng: -46.6488, beds: 26, icu: 5, o2: 91, type: 'HOSPITAL', status: 'busy' },
+
+    { id: 'sepaco', name: 'Hospital Sepaco', lat: -23.5842, lng: -46.6404, beds: 12, icu: 2, o2: 84, type: 'HOSPITAL', status: 'available' },
+
+    { id: 'campo-limpo', name: 'Hospital Campo Limpo', lat: -23.6497, lng: -46.7581, beds: 21, icu: 4, o2: 82, type: 'HOSPITAL', status: 'busy' },
+
+    { id: 'mboi', name: 'Hospital M Boi Mirim', lat: -23.6873, lng: -46.7812, beds: 17, icu: 2, o2: 80, type: 'HOSPITAL', status: 'critical' },
+
+    { id: 'tatuape', name: 'Hospital Tatuapé', lat: -23.5409, lng: -46.5762, beds: 19, icu: 3, o2: 86, type: 'HOSPITAL', status: 'available' },
+
+    { id: 'itaquera', name: 'Hospital Planalto Itaquera', lat: -23.5484, lng: -46.4558, beds: 14, icu: 2, o2: 79, type: 'HOSPITAL', status: 'busy' },
+
+    { id: 'cidade-tiradentes', name: 'Hospital Cidade Tiradentes', lat: -23.5981, lng: -46.4015, beds: 10, icu: 1, o2: 75, type: 'HOSPITAL', status: 'critical' },
+
+    { id: 'pirituba', name: 'Hospital Pirituba', lat: -23.4858, lng: -46.7340, beds: 23, icu: 4, o2: 88, type: 'HOSPITAL', status: 'available' },
+
+    { id: 'sapopemba', name: 'Hospital Sapopemba', lat: -23.6087, lng: -46.5101, beds: 16, icu: 2, o2: 81, type: 'HOSPITAL', status: 'busy' },
+
+    { id: 'ermelino', name: 'Hospital Ermelino Matarazzo', lat: -23.4968, lng: -46.4823, beds: 20, icu: 3, o2: 83, type: 'HOSPITAL', status: 'available' },
+
+    { id: 'upa-zl', name: 'UPA Zona Leste', lat: -23.5333, lng: -46.5890, beds: 5, icu: 1, o2: 72, type: 'UPA', status: 'critical' },
+
+    { id: 'upa-sul', name: 'UPA Santo Amaro', lat: -23.6549, lng: -46.7101, beds: 7, icu: 1, o2: 76, type: 'UPA', status: 'busy' },
+
+    { id: 'upa-norte', name: 'UPA Santana', lat: -23.5021, lng: -46.6245, beds: 8, icu: 1, o2: 78, type: 'UPA', status: 'available' },
+
+    { id: 'municipal', name: 'Hospital Municipal', lat: -23.5280, lng: -46.6390, beds: 28, icu: 4, o2: 89, type: 'HOSPITAL', status: 'available' }
+  ],
+
+  ambulances: [
+    { id: 'A-204', lat: -23.5550, lng: -46.6550, status: 'available' },
+    { id: 'A-118', lat: -23.5400, lng: -46.6300, status: 'busy' },
+    { id: 'A-301', lat: -23.5600, lng: -46.6700, status: 'available' },
+    { id: 'A-410', lat: -23.6000, lng: -46.7000, status: 'available' },
+    { id: 'A-512', lat: -23.5200, lng: -46.5800, status: 'busy' }
+  ]
+};
 
     const state = {
       map: null,
