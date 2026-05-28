@@ -70,8 +70,6 @@ em dev...
 
 ## 📄 Licença
 
-sob a licença...
-
 ```
 Copyright (c) 2026 AuraHealthSP
 
