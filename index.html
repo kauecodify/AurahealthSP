@@ -1227,7 +1227,7 @@
           </div>
           <div class="stat-card">
             <h3>🏥 Hospitais Online</h3>
-            <span class="stat-value" id="hospitalsOnline">19</span>
+            <span class="stat-value" id="hospitalsOnline">+50</span>
             <span class="stat-delta up">▲ Todos operantes</span>
           </div>
           <div class="stat-card">
@@ -1354,46 +1354,109 @@ const CONFIG = {
   mapZoom: 11,
   osrmServer: 'https://router.project-osrm.org/route/v1/driving/',
 
-  hospitals: [
-    { id: 'hc', name: 'Hospital das Clínicas', lat: -23.5614, lng: -46.6722, beds: 42, icu: 8, o2: 98, type: 'HOSPITAL', status: 'available' },
-
-    { id: 'santa', name: 'Santa Casa de São Paulo', lat: -23.5453, lng: -46.6425, beds: 18, icu: 3, o2: 87, type: 'HOSPITAL', status: 'busy' },
-
-    { id: 'hsp', name: 'Hospital São Paulo', lat: -23.5989, lng: -46.6656, beds: 35, icu: 6, o2: 94, type: 'HOSPITAL', status: 'available' },
-
-    { id: 'sirio', name: 'Hospital Sírio-Libanês', lat: -23.5577, lng: -46.6581, beds: 30, icu: 7, o2: 96, type: 'HOSPITAL', status: 'available' },
-
-    { id: 'einstein', name: 'Hospital Albert Einstein', lat: -23.6008, lng: -46.7158, beds: 55, icu: 14, o2: 99, type: 'HOSPITAL', status: 'available' },
-
-    { id: 'beneficencia', name: 'Beneficência Portuguesa', lat: -23.5694, lng: -46.6488, beds: 26, icu: 5, o2: 91, type: 'HOSPITAL', status: 'busy' },
-
-    { id: 'sepaco', name: 'Hospital Sepaco', lat: -23.5842, lng: -46.6404, beds: 12, icu: 2, o2: 84, type: 'HOSPITAL', status: 'available' },
-
-    { id: 'campo-limpo', name: 'Hospital Campo Limpo', lat: -23.6497, lng: -46.7581, beds: 21, icu: 4, o2: 82, type: 'HOSPITAL', status: 'busy' },
-
-    { id: 'mboi', name: 'Hospital M Boi Mirim', lat: -23.6873, lng: -46.7812, beds: 17, icu: 2, o2: 80, type: 'HOSPITAL', status: 'critical' },
-
-    { id: 'tatuape', name: 'Hospital Tatuapé', lat: -23.5409, lng: -46.5762, beds: 19, icu: 3, o2: 86, type: 'HOSPITAL', status: 'available' },
-
-    { id: 'itaquera', name: 'Hospital Planalto Itaquera', lat: -23.5484, lng: -46.4558, beds: 14, icu: 2, o2: 79, type: 'HOSPITAL', status: 'busy' },
-
-    { id: 'cidade-tiradentes', name: 'Hospital Cidade Tiradentes', lat: -23.5981, lng: -46.4015, beds: 10, icu: 1, o2: 75, type: 'HOSPITAL', status: 'critical' },
-
-    { id: 'pirituba', name: 'Hospital Pirituba', lat: -23.4858, lng: -46.7340, beds: 23, icu: 4, o2: 88, type: 'HOSPITAL', status: 'available' },
-
-    { id: 'sapopemba', name: 'Hospital Sapopemba', lat: -23.6087, lng: -46.5101, beds: 16, icu: 2, o2: 81, type: 'HOSPITAL', status: 'busy' },
-
-    { id: 'ermelino', name: 'Hospital Ermelino Matarazzo', lat: -23.4968, lng: -46.4823, beds: 20, icu: 3, o2: 83, type: 'HOSPITAL', status: 'available' },
-
-    { id: 'upa-zl', name: 'UPA Zona Leste', lat: -23.5333, lng: -46.5890, beds: 5, icu: 1, o2: 72, type: 'UPA', status: 'critical' },
-
-    { id: 'upa-sul', name: 'UPA Santo Amaro', lat: -23.6549, lng: -46.7101, beds: 7, icu: 1, o2: 76, type: 'UPA', status: 'busy' },
-
-    { id: 'upa-norte', name: 'UPA Santana', lat: -23.5021, lng: -46.6245, beds: 8, icu: 1, o2: 78, type: 'UPA', status: 'available' },
-
-    { id: 'municipal', name: 'Hospital Municipal', lat: -23.5280, lng: -46.6390, beds: 28, icu: 4, o2: 89, type: 'HOSPITAL', status: 'available' }
+    hospitals: [
+    { id: 'guaianases-001', name: 'Unidade de Saúde Guaianases Unidade I', lat: -23.5689, lng: -46.4211, beds: 51, icu: 3, o2: 93, type: 'HOSPITAL', status: 'available' },
+    { id: 'consolaçao-002', name: 'Hospital Geral Consolação Central', lat: -23.5802, lng: -46.6663, beds: 53, icu: 14, o2: 82, type: 'HOSPITAL', status: 'available' },
+    { id: 'moema-003', name: 'Vida Plena Moema Regional', lat: -23.5903, lng: -46.6952, beds: 25, icu: 5, o2: 81, type: 'HOSPITAL', status: 'critical' },
+    { id: 'perdizes-004', name: 'São Lucas Perdizes Zonal', lat: -23.5695, lng: -46.6861, beds: 59, icu: 2, o2: 98, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-formosa-005', name: 'São Lucas Vila Formosa Central', lat: -23.5405, lng: -46.5629, beds: 53, icu: 3, o2: 76, type: 'HOSPITAL', status: 'busy' },
+    { id: 'osasco-fronteira-006', name: 'UPA Osasco-Fronteira Av. Paulista', lat: -23.5482, lng: -46.8008, beds: 25, icu: 15, o2: 95, type: 'HOSPITAL', status: 'busy' },
+    { id: 'itaquera-007', name: 'Pronto Socorro Itaquera Unidade II', lat: -23.5562, lng: -46.4732, beds: 42, icu: 8, o2: 80, type: 'HOSPITAL', status: 'available' },
+    { id: 'liberdade-sul-008', name: 'São José Liberdade-Sul', lat: -23.5395, lng: -46.6205, beds: 22, icu: 2, o2: 85, type: 'HOSPITAL', status: 'available' },
+    { id: 'mooca-009', name: 'São José Mooca Central', lat: -23.5676, lng: -46.5728, beds: 49, icu: 16, o2: 87, type: 'HOSPITAL', status: 'critical' },
+    { id: 'cidade-tiradentes-010', name: 'Hospital Geral Cidade Tiradentes Zonal', lat: -23.6006, lng: -46.4156, beds: 55, icu: 14, o2: 93, type: 'HOSPITAL', status: 'available' },
+    { id: 'sao-judas-011', name: 'Hosp. São Judas Unidade I', lat: -23.5891, lng: -46.6373, beds: 17, icu: 6, o2: 96, type: 'HOSPITAL', status: 'available' },
+    { id: 'mooca-012', name: 'Hospital Regional Mooca', lat: -23.5572, lng: -46.5936, beds: 51, icu: 4, o2: 96, type: 'HOSPITAL', status: 'critical' },
+    { id: 'embu-fronteira-013', name: 'UPA Embu-Fronteira Unidade II', lat: -23.6929, lng: -46.8071, beds: 10, icu: 0, o2: 78, type: 'UPA', status: 'critical' },
+    { id: 'cotia-fronteira-014', name: 'Santa Casa Cotia-Fronteira Central', lat: -23.6382, lng: -46.7741, beds: 17, icu: 12, o2: 99, type: 'HOSPITAL', status: 'available' },
+    { id: 'carapicuiba-fronteira-015', name: 'Emergência Carapicuíba-Fronteira', lat: -23.4903, lng: -46.7638, beds: 15, icu: 12, o2: 84, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-mariana-016', name: 'Emergência Vila Mariana Unidade I', lat: -23.5662, lng: -46.6121, beds: 11, icu: 0, o2: 74, type: 'UPA', status: 'busy' },
+    { id: 'vila-nova-cachoeirinha-017', name: 'Clínica Vila Nova Cachoeirinha Central', lat: -23.479, lng: -46.6439, beds: 53, icu: 10, o2: 87, type: 'HOSPITAL', status: 'critical' },
+    { id: 'ermelino-matarazzo-018', name: 'Hospital Municipal Ermelino Matarazzo Central', lat: -23.5044, lng: -46.4583, beds: 12, icu: 11, o2: 75, type: 'HOSPITAL', status: 'busy' },
+    { id: 'jabaquara-019', name: 'Hosp. Jabaquara Central', lat: -23.6336, lng: -46.6718, beds: 12, icu: 2, o2: 85, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-mariana-020', name: 'Emergência Vila Mariana Central', lat: -23.6022, lng: -46.6398, beds: 58, icu: 16, o2: 88, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-matilde-021', name: 'Hosp. Vila Matilde Unidade I', lat: -23.5061, lng: -46.5476, beds: 11, icu: 13, o2: 98, type: 'HOSPITAL', status: 'available' },
+    { id: 'artur-alvim-022', name: 'Vida Plena Artur Alvim Unidade II', lat: -23.5607, lng: -46.5309, beds: 25, icu: 15, o2: 82, type: 'HOSPITAL', status: 'critical' },
+    { id: 'bras-023', name: 'Hosp. Brás', lat: -23.5487, lng: -46.5939, beds: 13, icu: 8, o2: 80, type: 'HOSPITAL', status: 'available' },
+    { id: 'tucuruvi-024', name: 'Nossa Senhora Tucuruvi', lat: -23.4961, lng: -46.6148, beds: 9, icu: 1, o2: 84, type: 'UPA', status: 'available' },
+    { id: 'parque-sao-lucas-025', name: 'Emergência Parque São Lucas Unidade II', lat: -23.5482, lng: -46.4859, beds: 20, icu: 10, o2: 81, type: 'HOSPITAL', status: 'critical' },
+    { id: 'anhanguera-026', name: 'Hosp. Anhanguera do Trabalhador', lat: -23.4148, lng: -46.8252, beds: 40, icu: 6, o2: 76, type: 'HOSPITAL', status: 'critical' },
+    { id: 'tatuape-027', name: 'Hospital Municipal Tatuapé Av. Paulista', lat: -23.5198, lng: -46.6021, beds: 4, icu: 2, o2: 77, type: 'UPA', status: 'busy' },
+    { id: 'santa-cecilia-028', name: 'Pronto Atendimento Santa Cecília Regional', lat: -23.5322, lng: -46.659, beds: 24, icu: 7, o2: 96, type: 'HOSPITAL', status: 'busy' },
+    { id: 'vila-mariana-029', name: 'Saúde Total Vila Mariana Regional', lat: -23.603, lng: -46.661, beds: 56, icu: 3, o2: 75, type: 'HOSPITAL', status: 'available' },
+    { id: 'jaragua-030', name: 'Hospital Regional Jaraguá Unidade II', lat: -23.4158, lng: -46.7812, beds: 30, icu: 3, o2: 82, type: 'HOSPITAL', status: 'available' },
+    { id: 'itaquera-031', name: 'Pronto Atendimento Itaquera', lat: -23.5521, lng: -46.4532, beds: 50, icu: 10, o2: 96, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-guilherme-032', name: 'Unidade de Saúde Vila Guilherme Zonal', lat: -23.553, lng: -46.5655, beds: 26, icu: 7, o2: 97, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-esperança-033', name: 'Hosp. Vila Esperança Unidade I', lat: -23.5175, lng: -46.5031, beds: 48, icu: 14, o2: 83, type: 'HOSPITAL', status: 'available' },
+    { id: 'pinheiros-034', name: 'Saúde Total Pinheiros Av. Paulista', lat: -23.5526, lng: -46.6807, beds: 43, icu: 1, o2: 78, type: 'HOSPITAL', status: 'available' },
+    { id: 'sao-rafael-035', name: 'Hospital Geral São Rafael Unidade II', lat: -23.5314, lng: -46.4662, beds: 35, icu: 5, o2: 76, type: 'HOSPITAL', status: 'available' },
+    { id: 'santa-cecilia-036', name: 'UPA Santa Cecília Regional', lat: -23.5155, lng: -46.6716, beds: 57, icu: 14, o2: 94, type: 'HOSPITAL', status: 'busy' },
+    { id: 'vila-mariana-037', name: 'Vida Plena Vila Mariana', lat: -23.567, lng: -46.6103, beds: 19, icu: 11, o2: 88, type: 'HOSPITAL', status: 'busy' },
+    { id: 'rudge-ramos-038', name: 'UPA Rudge Ramos Av. Paulista', lat: -23.637, lng: -46.6596, beds: 63, icu: 2, o2: 90, type: 'HOSPITAL', status: 'available' },
+    { id: 'jaguare-039', name: 'Hospital Municipal Jaguaré', lat: -23.5646, lng: -46.7197, beds: 50, icu: 7, o2: 87, type: 'HOSPITAL', status: 'available' },
+    { id: 'mooca-040', name: 'Nossa Senhora Mooca Regional', lat: -23.5223, lng: -46.6127, beds: 9, icu: 4, o2: 83, type: 'HOSPITAL', status: 'available' },
+    { id: 'aclimaçao-041', name: 'São José Aclimação Av. Paulista', lat: -23.5966, lng: -46.6298, beds: 46, icu: 4, o2: 87, type: 'HOSPITAL', status: 'critical' },
+    { id: 'sapopemba-042', name: 'Hospital Geral Sapopemba Central', lat: -23.6234, lng: -46.4976, beds: 8, icu: 1, o2: 72, type: 'UPA', status: 'critical' },
+    { id: 'pinheiros-043', name: 'Santa Casa Pinheiros Zonal', lat: -23.5615, lng: -46.6791, beds: 9, icu: 1, o2: 82, type: 'UPA', status: 'busy' },
+    { id: 'vila-nova-cachoeirinha-044', name: 'Centro Médico Vila Nova Cachoeirinha Zonal', lat: -23.4813, lng: -46.6504, beds: 33, icu: 1, o2: 84, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-sônia-045', name: 'Saúde Total Vila Sônia do Trabalhador', lat: -23.6185, lng: -46.7225, beds: 51, icu: 7, o2: 91, type: 'HOSPITAL', status: 'available' },
+    { id: 'rudge-ramos-046', name: 'São José Rudge Ramos Unidade I', lat: -23.6754, lng: -46.6705, beds: 60, icu: 8, o2: 96, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-prudente-047', name: 'Pronto Socorro Vila Prudente do Trabalhador', lat: -23.6168, lng: -46.6061, beds: 34, icu: 7, o2: 97, type: 'HOSPITAL', status: 'busy' },
+    { id: 'jaçana-048', name: 'UPA Jaçanã Av. Paulista', lat: -23.4616, lng: -46.6167, beds: 22, icu: 6, o2: 97, type: 'HOSPITAL', status: 'busy' },
+    { id: 'higienopolis-049', name: 'Unidade de Saúde Higienópolis do Trabalhador', lat: -23.5408, lng: -46.6339, beds: 11, icu: 2, o2: 89, type: 'UPA', status: 'available' },
+    { id: 'embu-fronteira-050', name: 'Pronto Atendimento Embu-Fronteira Av. Paulista', lat: -23.6554, lng: -46.8088, beds: 61, icu: 15, o2: 80, type: 'HOSPITAL', status: 'busy' },
+    { id: 'santana-051', name: 'Hospital Regional Santana do Trabalhador', lat: -23.5051, lng: -46.6094, beds: 48, icu: 8, o2: 83, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-alpina-052', name: 'Hospital Geral Vila Alpina Unidade I', lat: -23.6085, lng: -46.5493, beds: 16, icu: 5, o2: 82, type: 'HOSPITAL', status: 'available' },
+    { id: 'guarulhos-fronteira-053', name: 'Hospital Geral Guarulhos-Fronteira do Trabalhador', lat: -23.4765, lng: -46.5717, beds: 34, icu: 2, o2: 81, type: 'HOSPITAL', status: 'busy' },
+    { id: 'campo-limpo-054', name: 'Nossa Senhora Campo Limpo do Trabalhador', lat: -23.6254, lng: -46.7531, beds: 8, icu: 12, o2: 84, type: 'HOSPITAL', status: 'busy' },
+    { id: 'vila-sonia-055', name: 'Hospital Municipal Vila Sonia do Trabalhador', lat: -23.6333, lng: -46.7148, beds: 22, icu: 9, o2: 88, type: 'HOSPITAL', status: 'available' },
+    { id: 'campo-limpo-056', name: 'Centro Médico Campo Limpo do Trabalhador', lat: -23.6595, lng: -46.7474, beds: 16, icu: 1, o2: 87, type: 'HOSPITAL', status: 'busy' },
+    { id: 'ponte-rasa-057', name: 'Saúde Total Ponte Rasa Unidade II', lat: -23.544, lng: -46.457, beds: 3, icu: 1, o2: 82, type: 'UPA', status: 'available' },
+    { id: 'jaguare-058', name: 'Vida Plena Jaguaré Zonal', lat: -23.566, lng: -46.7232, beds: 61, icu: 3, o2: 90, type: 'HOSPITAL', status: 'available' },
+    { id: 'cachoeirinha-059', name: 'Pronto Socorro Cachoeirinha', lat: -23.4925, lng: -46.6285, beds: 56, icu: 1, o2: 82, type: 'HOSPITAL', status: 'available' },
+    { id: 'bela-vista-060', name: 'UPA Bela Vista Central', lat: -23.5574, lng: -46.6579, beds: 37, icu: 9, o2: 99, type: 'HOSPITAL', status: 'available' },
+    { id: 'lapa-norte-061', name: 'Centro Médico Lapa-Norte Zonal', lat: -23.5092, lng: -46.6807, beds: 4, icu: 2, o2: 70, type: 'UPA', status: 'critical' },
+    { id: 'perus-062', name: 'Clínica Perus Unidade I', lat: -23.405, lng: -46.7481, beds: 45, icu: 8, o2: 78, type: 'HOSPITAL', status: 'busy' },
+    { id: 'campo-belo-063', name: 'Hosp. Campo Belo Regional', lat: -23.6046, lng: -46.6629, beds: 11, icu: 1, o2: 91, type: 'UPA', status: 'available' },
+    { id: 'tremembe-064', name: 'Emergência Tremembé Unidade I', lat: -23.4367, lng: -46.6048, beds: 35, icu: 12, o2: 95, type: 'HOSPITAL', status: 'critical' },
+    { id: 'jaguare-065', name: 'Hospital Regional Jaguaré do Trabalhador', lat: -23.5432, lng: -46.7428, beds: 37, icu: 14, o2: 98, type: 'HOSPITAL', status: 'busy' },
+    { id: 'itaim-bibi-066', name: 'Saúde Total Itaim Bibi Central', lat: -23.5678, lng: -46.6591, beds: 10, icu: 2, o2: 89, type: 'UPA', status: 'busy' },
+    { id: 'perdizes-067', name: 'Clínica Perdizes Regional', lat: -23.5739, lng: -46.6578, beds: 59, icu: 9, o2: 85, type: 'HOSPITAL', status: 'available' },
+    { id: 'sao-domingos-068', name: 'Clínica São Domingos Unidade I', lat: -23.4835, lng: -46.709, beds: 6, icu: 2, o2: 83, type: 'UPA', status: 'available' },
+    { id: 'cotia-fronteira-069', name: 'Saúde Total Cotia-Fronteira', lat: -23.6345, lng: -46.8003, beds: 13, icu: 10, o2: 82, type: 'HOSPITAL', status: 'available' },
+    { id: 'saude-070', name: 'Pronto Atendimento Saúde Regional', lat: -23.6072, lng: -46.624, beds: 35, icu: 11, o2: 86, type: 'HOSPITAL', status: 'busy' },
+    { id: 'liberdade-sul-071', name: 'São José Liberdade-Sul Unidade I', lat: -23.5805, lng: -46.6451, beds: 55, icu: 6, o2: 81, type: 'HOSPITAL', status: 'available' },
+    { id: 'tucuruvi-072', name: 'Santa Casa Tucuruvi Unidade I', lat: -23.4923, lng: -46.6035, beds: 61, icu: 7, o2: 84, type: 'HOSPITAL', status: 'available' },
+    { id: 'parque-do-carmo-073', name: 'Hosp. Parque do Carmo', lat: -23.5575, lng: -46.4764, beds: 11, icu: 1, o2: 92, type: 'UPA', status: 'critical' },
+    { id: 'guaianases-074', name: 'Santa Casa Guaianases do Trabalhador', lat: -23.5235, lng: -46.4361, beds: 38, icu: 15, o2: 85, type: 'HOSPITAL', status: 'available' },
+    { id: 'higienopolis-075', name: 'Pronto Socorro Higienópolis Av. Paulista', lat: -23.5591, lng: -46.6372, beds: 10, icu: 0, o2: 88, type: 'UPA', status: 'busy' },
+    { id: 'higienopolis-076', name: 'Pronto Socorro Higienópolis Central', lat: -23.5651, lng: -46.6402, beds: 15, icu: 14, o2: 94, type: 'HOSPITAL', status: 'busy' },
+    { id: 'vila-gustavo-077', name: 'Saúde Total Vila Gustavo Zonal', lat: -23.5254, lng: -46.6042, beds: 63, icu: 14, o2: 84, type: 'HOSPITAL', status: 'busy' },
+    { id: 'cambuci-078', name: 'Clínica Cambuci Central', lat: -23.5623, lng: -46.6067, beds: 24, icu: 3, o2: 80, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-nova-cachoeirinha-079', name: 'Emergência Vila Nova Cachoeirinha Zonal', lat: -23.4844, lng: -46.6754, beds: 10, icu: 8, o2: 84, type: 'HOSPITAL', status: 'busy' },
+    { id: 'parque-sao-lucas-080', name: 'Hospital Regional Parque São Lucas Central', lat: -23.554, lng: -46.5413, beds: 35, icu: 4, o2: 92, type: 'HOSPITAL', status: 'available' },
+    { id: 'guarulhos-fronteira-081', name: 'Centro Médico Guarulhos-Fronteira Zonal', lat: -23.4644, lng: -46.526, beds: 12, icu: 2, o2: 88, type: 'UPA', status: 'critical' },
+    { id: 'butanta-082', name: 'Hospital Regional Butantã do Trabalhador', lat: -23.5914, lng: -46.7176, beds: 36, icu: 3, o2: 94, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-sônia-083', name: 'Hospital Municipal Vila Sônia', lat: -23.6215, lng: -46.7227, beds: 7, icu: 2, o2: 71, type: 'UPA', status: 'busy' },
+    { id: 'parque-do-carmo-084', name: 'Centro Médico Parque do Carmo Av. Paulista', lat: -23.5474, lng: -46.4798, beds: 48, icu: 16, o2: 77, type: 'HOSPITAL', status: 'available' },
+    { id: 'jardim-sao-luis-085', name: 'São José Jardim São Luís Av. Paulista', lat: -23.6789, lng: -46.7354, beds: 52, icu: 16, o2: 84, type: 'HOSPITAL', status: 'busy' },
+    { id: 'jardim-ângela-086', name: 'São José Jardim Ângela Zonal', lat: -23.6801, lng: -46.7859, beds: 28, icu: 4, o2: 99, type: 'HOSPITAL', status: 'available' },
+    { id: 'vila-guilherme-n-087', name: 'Saúde Total Vila Guilherme-N Av. Paulista', lat: -23.4894, lng: -46.6255, beds: 11, icu: 7, o2: 91, type: 'HOSPITAL', status: 'available' },
+    { id: 'embu-fronteira-088', name: 'Hospital Regional Embu-Fronteira Unidade II', lat: -23.679, lng: -46.8191, beds: 7, icu: 1, o2: 92, type: 'UPA', status: 'available' },
+    { id: 'consolaçao-089', name: 'Centro Médico Consolação Zonal', lat: -23.5274, lng: -46.6438, beds: 43, icu: 1, o2: 92, type: 'HOSPITAL', status: 'available' },
+    { id: 'sao-judas-090', name: 'UPA São Judas Unidade II', lat: -23.5894, lng: -46.5908, beds: 39, icu: 10, o2: 91, type: 'HOSPITAL', status: 'busy' },
+    { id: 'vila-sonia-091', name: 'Hospital Geral Vila Sonia Unidade II', lat: -23.6155, lng: -46.7001, beds: 32, icu: 7, o2: 94, type: 'HOSPITAL', status: 'busy' },
+    { id: 'vila-guilherme-092', name: 'Vida Plena Vila Guilherme Regional', lat: -23.5171, lng: -46.6023, beds: 58, icu: 9, o2: 75, type: 'HOSPITAL', status: 'available' },
+    { id: 'campo-belo-093', name: 'Unidade de Saúde Campo Belo do Trabalhador', lat: -23.6054, lng: -46.6641, beds: 42, icu: 16, o2: 86, type: 'HOSPITAL', status: 'available' },
+    { id: 'cotia-fronteira-094', name: 'Clínica Cotia-Fronteira Central', lat: -23.6163, lng: -46.8016, beds: 44, icu: 13, o2: 82, type: 'HOSPITAL', status: 'critical' },
+    { id: 'jardim-sao-luis-095', name: 'Nossa Senhora Jardim São Luís Av. Paulista', lat: -23.6963, lng: -46.7309, beds: 50, icu: 5, o2: 90, type: 'HOSPITAL', status: 'critical' },
+    { id: 'carrao-096', name: 'Saúde Total Carrão Unidade I', lat: -23.5555, lng: -46.5635, beds: 41, icu: 15, o2: 75, type: 'HOSPITAL', status: 'busy' },
+    { id: 'jardim-sao-luis-097', name: 'Hospital Regional Jardim São Luís Regional', lat: -23.6466, lng: -46.7174, beds: 12, icu: 2, o2: 82, type: 'UPA', status: 'busy' },
+    { id: 'pinheiros-098', name: 'São José Pinheiros do Trabalhador', lat: -23.5478, lng: -46.6673, beds: 63, icu: 2, o2: 94, type: 'HOSPITAL', status: 'available' },
+    { id: 'sao-miguel-paulista-099', name: 'Pronto Socorro São Miguel Paulista Av. Paulista', lat: -23.4845, lng: -46.4584, beds: 14, icu: 4, o2: 89, type: 'HOSPITAL', status: 'available' },
+    { id: 'campo-belo-100', name: 'Santa Casa Campo Belo Regional', lat: -23.6014, lng: -46.6961, beds: 31, icu: 14, o2: 79, type: 'HOSPITAL', status: 'available' },
   ],
-
+  
   ambulances: [
     { id: 'A-204', lat: -23.5550, lng: -46.6550, status: 'available' },
     { id: 'A-118', lat: -23.5400, lng: -46.6300, status: 'busy' },
