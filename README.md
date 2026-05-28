@@ -37,17 +37,6 @@ em dev...
 
 ---
 
-### 🛠️ Instalação Local
-
-```bash
-# 1. Clonar repositório
-git clone https://github.com/seu-org/aurahealth-sp.git
-cd aurahealth-sp
-play...
-```
-
----
-
 ## 📁 Estrutura do Projeto
 
 em dev...
