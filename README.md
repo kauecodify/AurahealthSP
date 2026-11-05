@@ -91,5 +91,5 @@ from AuraHealthSP.
 > **AuraHealthSP** — Transformando fragmentação em integração, dados em decisões, e espera em cuidado.
 
 <p align="center">
-  <sub>Feito com ❤️ para o SUS e para todos os brasileiros</sub>
+  <sub> GPLv3</sub>
 </p>
