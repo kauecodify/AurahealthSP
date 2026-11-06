@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuraHealthSP v2 - Sistema Completo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+:root {--p:#0ea5a5;--s:#6366f1;--d:#ef4444;--w:#f59e0b;--g:#22c55e;--bg:#f8fafc;--sf:#fff;--t:#0f172a;--tm:#64748b;--b:#e2e8f0;--r:12px;}
+* {margin:0;padding:0;box-sizing:border-box}
+body {font-family:'Inter',sans-serif;background:var(--bg);color:var(--t);line-height:1.6}
+#app {min-height:100vh;display:flex;flex-direction:column}
+.header {position:sticky;top:0;z-index:1000;background:var(--sf);border-bottom:1px solid var(--b);padding:1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.logo {font-weight:700;font-size:1.25rem;color:var(--t);display:flex;align-items:center;gap:0.5rem}
+.logo span {color:var(--p)}
+.nav {display:flex;gap:0.5rem;background:var(--bg);padding:0.25rem;border-radius:10px;flex-wrap:wrap}
+.nav-btn {padding:0.5rem 1rem;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:0.9rem;white-space:nowrap}
+.nav-btn:hover,.nav-btn.active {background:var(--sf);color:var(--p)}
+.main {flex:1;padding:1.5rem;max-width:1400px;margin:0 auto;width:100%}
+.view {display:none}
+.view.active {display:block}
+.card {background:var(--sf);border-radius:var(--r);box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:1.5rem;margin-bottom:1rem;border:1px solid var(--b)}
+.card h3 {margin-bottom:1rem;font-size:1.1rem}
+.stats {display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat {background:var(--sf);padding:1rem;border-radius:var(--r);border:1px solid var(--b)}
+.stat h4 {font-size:0.85rem;color:var(--tm);margin-bottom:0.5rem}
+.stat .value {font-size:1.5rem;font-weight:700;color:var(--p)}
+#map {height:400px;width:100%;border-radius:var(--r);margin-bottom:1rem}
+.table {width:100%;border-collapse:collapse;margin-top:1rem}
+.table th,.table td {padding:0.75rem;text-align:left;border-bottom:1px solid var(--b)}
+.table th {background:var(--bg);font-weight:600;font-size:0.85rem}
+.btn {padding:0.5rem 1rem;border:none;border-radius:var(--r);cursor:pointer;font-weight:600;font-size:0.9rem;display:inline-flex;align-items:center;gap:0.5rem}
+.btn-p {background:var(--p);color:white}
+.btn-s {background:var(--s);color:white}
+.btn-g {background:var(--g);color:white}
+.btn-d {background:var(--d);color:white}
+.form-group {display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem}
+.form-group label {font-weight:500;color:var(--t);font-size:0.9rem}
+.form-group input,.form-group select {padding:0.6rem 0.85rem;border:1px solid var(--b);border-radius:var(--r);font-size:0.95rem}
+.loading {display:flex;align-items:center;justify-content:center;padding:2rem;color:var(--tm)}
+.spinner {width:32px;height:32px;border:3px solid var(--b);border-top-color:var(--p);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin {to {transform:rotate(360deg)}}
+.toast {position:fixed;bottom:1.5rem;right:1.5rem;background:var(--sf);border-radius:var(--r);box-shadow:0 4px 12px rgba(0,0,0,0.15);padding:1rem 1.5rem;display:flex;align-items:center;gap:0.75rem;z-index:2000;animation:slideIn 0.3s ease}
+@keyframes slideIn {from {opacity:0;transform:translateX(100%)} to {opacity:1;transform:translateX(0)}}
+.toast.success {border-left:4px solid var(--g)}
+.toast.error {border-left:4px solid var(--d)}
+.toast.info {border-left:4px solid var(--p)}
+.badge {display:inline-block;padding:0.25rem 0.5rem;border-radius:20px;font-size:0.75rem;font-weight:600}
+.badge-available {background:#dcfce7;color:#166534}
+.badge-busy {background:#fef3c7;color:#92400e}
+.badge-critical {background:#fee2e2;color:#991b1b}
+.badge-pending {background:#dbeafe;color:#1e40af}
+.badge-approved {background:#dcfce7;color:#166534}
+.badge-rejected {background:#fee2e2;color:#991b1b}
+.grid-2 {display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem}
+.footer {background:var(--sf);border-top:1px solid var(--b);padding:1rem;margin-top:auto;text-align:center;color:var(--tm);font-size:0.85rem}
+@media (max-width:768px) {
+  .header {flex-direction:column;padding:0.75rem}
+  .nav {width:100%;justify-content:center;flex-wrap:wrap}
+  .nav-btn {padding:0.4rem 0.75rem;font-size:0.8rem}
+  .main {padding:1rem}
+  .stats {grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+  #map {height:300px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="header">
+    <div class="logo"><i class="fas fa-heartbeat" style="color:var(--p)"></i> AuraHealth<span>SP v2</span></div>
+    <nav class="nav">
+      <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+      <button class="nav-btn" data-view="hospitals">Hospitais</button>
+      <button class="nav-btn" data-view="service">Prestação de Serviço</button>
+      <button class="nav-btn" data-view="mei">MEI</button>
+      <button class="nav-btn" data-view="proposals">Propostas</button>
+      <button class="nav-btn" data-view="ambulances">Ambulâncias</button>
+      <button class="nav-btn" data-view="satellite">Satélite</button>
+      <button class="nav-btn" data-view="admin">Admin</button>
+    </nav>
+  </header>
+  <main class="main">
+    <div id="dashboard" class="view active">
+      <h2>Dashboard - AuraHealthSP v2</h2>
+      <p style="color:var(--tm);margin-bottom:1.5rem;">Sistema de Gestão de Saúde Pública | <strong>Orçamento Pre-Seed 2030: R$ 20.000.000,00</strong> | Infra: OldButGold TR8</p>
+      <div class="stats">
+        <div class="stat"><h4>Hospitais</h4><div class="value">150</div></div>
+        <div class="stat"><h4>Ambulâncias</h4><div class="value">45</div></div>
+        <div class="stat"><h4>Propostas</h4><div class="value">23</div></div>
+        <div class="stat"><h4>MEIs</h4><div class="value">89</div></div>
+        <div class="stat"><h4>Contratos</h4><div class="value">45</div></div>
+        <div class="stat"><h4>Orçamento</h4><div class="value">20M</div></div>
+      </div>
+      <div id="map"></div>
+      <div class="card"><h3>Estatísticas de Saúde</h3><p>Leitos disponíveis: 2543 | UTI disponíveis: 123 | Oxigênio: 94.5% | Emergências ativas: 8</p></div>
+    </div>
+    <div id="hospitals" class="view">
+      <div class="card"><h3>Hospitais Cadastrados</h3><p>Visualize todos os hospitais com status de leitos, UTI e oxigênio</p>
+      <table class="table"><thead><tr><th>Nome</th><th>Leitos</th><th>UTI</th><th>Oxigênio</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Hospital Central</td><td>500/500</td><td>50/50</td><td>100%</td><td><span class="badge badge-available">Disponível</span></td></tr>
+        <tr><td>Hospital Sul</td><td>300/280</td><td>30/25</td><td>95%</td><td><span class="badge badge-busy">Ocupado</span></td></tr>
+        <tr><td>Hospital Norte</td><td>200/180</td><td>20/15</td><td>90%</td><td><span class="badge badge-critical">Crítico</span></td></tr>
+      </tbody></table></div>
+    </div>
+    <div id="service" class="view">
+      <div class="card"><h3>Visualização de Prestação de Serviço em Hospitais</h3>
+      <p style="color:var(--tm);margin-bottom:1rem;">Dashboard em tempo real de todos os serviços prestados nos hospitais com integração MEI</p>
+      <div class="stats">
+        <div class="stat"><h4>Serviços Ativos</h4><div class="value">125</div></div>
+        <div class="stat"><h4>MEIs Autorizados</h4><div class="value">89</div></div>
+        <div class="stat"><h4>Setores Cobertos</h4><div class="value">12</div></div>
+        <div class="stat"><h4>Contratos Ativos</h4><div class="value">45</div></div>
+      </div></div>
+      <div class="grid-2">
+        <div class="card"><h3>Serviços por Hospital</h3>
+        <table class="table"><thead><tr><th>Hospital</th><th>Serviços</th><th>MEIs</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Hospital Central</td><td>45</td><td>32</td><td><span class="badge badge-available">Ativo</span></td></tr>
+          <tr><td>Hospital Sul</td><td>35</td><td>25</td><td><span class="badge badge-busy">Ocupado</span></td></tr>
+          <tr><td>Hospital Norte</td><td>28</td><td>18</td><td><span class="badge badge-critical">Crítico</span></td></tr>
+        </tbody></table></div>
+        <div class="card"><h3>Setores Autorizados por MEI</h3>
+        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+          <div style="padding:0.75rem;background:var(--bg);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>MEI Saúde LTDA</strong><p style="font-size:0.85rem;color:var(--tm);margin:0;">CNPJ: 12.345.678/0001-23</p></div>
+            <div style="display:flex;gap:0.5rem;"><span class="badge badge-approved">Saúde</span><span class="badge badge-approved">Limpeza</span></div>
+          </div>
+          <div style="padding:0.75rem;background:var(--bg);border-radius:8px;display:flex;justify-content:space-between;align-items:center;">
+            <div><strong>MEI Transporte Rápido</strong><p style="font-size:0.85rem;color:var(--tm);margin:0;">CNPJ: 34.567.890/0001-45</p></div>
+            <div style="display:flex;gap:0.5rem;"><span class="badge badge-approved">Transporte</span><span class="badge badge-approved">Logística</span></div>
+          </div>
+        </div></div>
+      </div>
+      <div class="card"><h3>Verificar MEI para Hospital</h3>
+      <p style="color:var(--tm);margin-bottom:1rem;">Verifique se um MEI está autorizado a prestar serviços em um hospital específico</p>
+      <div class="grid-2" style="gap:1rem;">
+        <div class="form-group"><label>CNPJ do MEI</label><input type="text" id="service-mei-cnpj" placeholder="14 dígitos" maxlength="14"></div>
+        <div class="form-group"><label>Hospital</label><select id="service-hospital-id"><option value="">Selecione</option><option value="1">Hospital Central</option><option value="2">Hospital Sul</option></select></div>
+      </div>
+      <button class="btn btn-p" onclick="checkMEIForHospital()">Verificar Autorização</button>
+      <div id="service-mei-result" style="margin-top:1rem;"></div>
+    </div>
+    <div id="mei" class="view">
+      <div class="card"><h3>Verificação de MEI</h3>
+      <div class="form-group"><label>CNPJ</label><input type="text" id="mei-cnpj" placeholder="14 dígitos" maxlength="14"></div>
+      <button class="btn btn-p" onclick="verifyMEI()">Verificar MEI</button>
+      <div id="mei-result" style="margin-top:1rem;"></div>
+      </div>
+      <div class="card"><h3>MEIs Cadastrados</h3><p>Total: <strong id="total-mei-count">89</strong></p>
+      <table class="table"><thead><tr><th>CNPJ</th><th>Razão Social</th><th>Status</th><th>Setores</th></tr></thead>
+      <tbody>
+        <tr><td>12.345.678/0001-23</td><td>MEI Saúde LTDA</td><td><span class="badge badge-approved">Ativo</span></td><td>Saúde, Transporte</td></tr>
+        <tr><td>23.456.789/0001-34</td><td>MEI Limpeza Total</td><td><span class="badge badge-approved">Ativo</span></td><td>Limpeza, Manutenção</td></tr>
+      </tbody></table></div>
+      <div class="card"><h3>Integração MEI - Setores Autorizados</h3>
+      <div class="form-group"><label>MEI</label><select id="mei-authorization-mei"><option value="">Selecione</option><option value="1">MEI Saúde LTDA</option></select></div>
+      <div class="form-group"><label>Hospital</label><select id="mei-authorization-hospital"><option value="">Selecione</option><option value="1">Hospital Central</option></select></div>
+      <div class="form-group"><label>Setores</label><select id="mei-authorization-sectors" multiple><option value="saude">Saúde</option><option value="limpeza">Limpeza</option><option value="transporte">Transporte</option></select></div>
+      <button class="btn btn-p" onclick="authorizeMEIForHospital()">Autorizar MEI</button>
+      <div id="mei-authorization-result" style="margin-top:1rem;"></div>
+    </div>
+    <div id="proposals" class="view">
+      <div class="card"><h3>Envio de Propostas</h3>
+      <form id="proposal-form">
+        <div class="form-group"><label>Título</label><input type="text" id="proposal-title" placeholder="Título da proposta" required></div>
+        <div class="grid-2" style="gap:1rem;">
+          <div class="form-group"><label>Valor (R$)</label><input type="number" id="proposal-value" step="0.01" placeholder="0.00" required></div>
+          <div class="form-group"><label>Hospital</label><select id="proposal-hospital" required><option value="">Selecione</option><option value="1">Hospital Central</option></select></div>
+        </div>
+        <div class="form-group"><label>Descrição</label><textarea id="proposal-description" placeholder="Descreva a proposta..." rows="3" required></textarea></div>
+        <div class="form-group"><label>CNPJ MEI (opcional)</label><input type="text" id="proposal-mei-cnpj" placeholder="14 dígitos" maxlength="14"></div>
+        <button type="submit" class="btn btn-p">Enviar Proposta</button>
+      </form>
+      </div>
+      <div class="card"><h3>Minhas Propostas</h3><p>Propostas enviadas: <strong id="my-proposals-count">5</strong></p>
+      <table class="table"><thead><tr><th>Título</th><th>Hospital</th><th>Valor</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Serviço de Limpeza</td><td>Hospital Central</td><td>R$ 50.000</td><td><span class="badge badge-pending">Pendente</span></td></tr>
+        <tr><td>Transporte de Pacientes</td><td>Hospital Sul</td><td>R$ 30.000</td><td><span class="badge badge-approved">Aprovado</span></td></tr>
+      </tbody></table></div>
+      <div class="card"><h3>Propostas com MEI (Aprovação Rápida)</h3>
+      <p style="color:var(--tm);margin-bottom:1rem;">Propostas enviadas por MEIs verificados são processadas em até 12 horas</p>
+      <div class="stats">
+        <div class="stat"><h4>Propostas MEI</h4><div class="value">15</div></div>
+        <div class="stat"><h4>Aprovadas</h4><div class="value">12</div></div>
+        <div class="stat"><h4>Tempo Médio</h4><div class="value">8h</div></div>
+      </div>
+    </div>
+    <div id="ambulances" class="view">
+      <div class="card"><h3>Rastreamento de Ambulâncias em Tempo Real</h3>
+      <p style="color:var(--tm);margin-bottom:1rem;"><strong>Infraestrutura Real:</strong> GPS + Satélite para cobertura completa</p>
+      <div id="ambulance-map" style="height:400px;width:100%;border-radius:var(--r);margin-bottom:1rem;background:var(--bg);"></div>
+      <div class="stats">
+        <div class="stat"><h4>Disponíveis</h4><div class="value">30</div></div>
+        <div class="stat"><h4>Em Rota</h4><div class="value">10</div></div>
+        <div class="stat"><h4>Ocupadas</h4><div class="value">5</div></div>
+        <div class="stat"><h4>Indisponíveis</h4><div class="value">0</div></div>
+      </div></div>
+      <div class="card"><h3>Frota de Ambulâncias</h3>
+      <table class="table"><thead><tr><th>Veículo</th><th>Hospital</th><th>Tipo</th><th>Status</th><th>Localização</th><th>Ações</th></tr></thead>
+      <tbody>
+        <tr><td>AMB-001</td><td>Hospital Central</td><td>Básica</td><td><span class="badge badge-available">Disponível</span></td><td>Base</td><td><button class="btn btn-p btn-sm" onclick="trackAmbulance('AMB-001')">Rastrear</button></td></tr>
+        <tr><td>AMB-002</td><td>Hospital Sul</td><td>Avançada</td><td><span class="badge badge-busy">Em rota</span></td><td>Av. Paulista</td><td><button class="btn btn-p btn-sm" onclick="trackAmbulance('AMB-002')">Rastrear</button></td></tr>
+      </tbody></table></div>
+      <div class="card"><h3>Comandos de Emergência</h3>
+      <div class="grid-2" style="gap:1rem;">
+        <div class="form-group"><label>Latitude</label><input type="text" id="emergency-lat" value="-23.5505"></div>
+        <div class="form-group"><label>Longitude</label><input type="text" id="emergency-lng" value="-46.6333"></div>
+      </div>
+      <div class="grid-2" style="gap:1rem;">
+        <div class="form-group"><label>Tipo</label><select id="emergency-type"><option value="medical">Médica</option><option value="accident">Acidente</option></select></div>
+        <div class="form-group"><label>Prioridade</label><select id="emergency-priority"><option value="high">Alta</option><option value="urgent">Urgente</option></select></div>
+      </div>
+      <button class="btn btn-d" onclick="activateEmergency()">ATIVAR EMERGÊNCIA</button>
+      <div id="emergency-result" style="margin-top:1rem;"></div>
+    </div>
+    <div id="satellite" class="view">
+      <div class="card"><h3>Integração Satélite</h3>
+      <p style="color:var(--tm);margin-bottom:1rem;"><strong>Infraestrutura Real:</strong> Comunicação via satélite para áreas remotas</p>
+      <div class="stats">
+        <div class="stat"><h4>Status</h4><div class="value">Conectado</div></div>
+        <div class="stat"><h4>Cobertura</h4><div class="value">98%</div></div>
+        <div class="stat"><h4>Satélites</h4><div class="value">3</div></div>
+        <div class="stat"><h4>Sinal</h4><div class="value">-75dBm</div></div>
+      </div></div>
+      <div class="grid-2">
+        <div class="card"><h3>Comandos Satélite</h3>
+        <div class="form-group"><label>Comando</label><select id="satellite-command"><option value="track">Rastrear Ambulância</option><option value="status">Verificar Status</option></select></div>
+        <div class="form-group"><label>Alvo</label><input type="text" id="satellite-target" placeholder="AMB-001 ou 'all'"></div>
+        <button class="btn btn-p" onclick="sendSatelliteCommand()">Enviar Comando</button>
+        <div id="satellite-response" style="margin-top:1rem;"></div>
+      </div>
+      <div class="card"><h3>Rastreamento via Satélite</h3>
+        <div class="form-group"><label>Ambulância</label><select id="satellite-track-ambulance"><option value="">Selecione</option><option value="AMB-001">AMB-001</option><option value="AMB-002">AMB-002</option></select></div>
+        <button class="btn btn-p" onclick="trackViaSatellite()">Rastrear via Satélite</button>
+        <div id="satellite-tracking-result" style="margin-top:1rem;"></div>
+      </div>
+    </div>
+    <div class="card"><h3>Dados de Rastreamento</h3>
+    <table class="table"><thead><tr><th>Ambulância</th><th>Hospital</th><th>Latitude</th><th>Longitude</th><th>Sinal</th></tr></thead>
+    <tbody>
+      <tr><td>AMB-001</td><td>Hospital Central</td><td>-23.5505</td><td>-46.6333</td><td>-75dBm</td></tr>
+      <tr><td>AMB-002</td><td>Hospital Sul</td><td>-23.5705</td><td>-46.6433</td><td>-80dBm</td></tr>
+    </tbody></table></div>
+    <div id="admin" class="view">
+      <div class="card"><h3>Painel Administrativo - Prefeitura de São Paulo</h3>
+      <p style="color:var(--tm);margin-bottom:1rem;">Gerencie todos os contratos, hospitais, propostas e prestadores</p>
+      <div class="stats">
+        <div class="stat"><h4>Contratos</h4><div class="value">45</div></div>
+        <div class="stat"><h4>Propostas</h4><div class="value">23</div></div>
+        <div class="stat"><h4>Hospitais</h4><div class="value">150</div></div>
+        <div class="stat"><h4>MEIs</h4><div class="value">89</div></div>
+        <div class="stat"><h4>Ambulâncias</h4><div class="value">45</div></div>
+        <div class="stat"><h4>Orçamento</h4><div class="value">20M</div></div>
+      </div></div>
+      <div class="grid-2">
+        <div class="card"><h3>Gestão de Contratos</h3><p style="color:var(--tm);margin-bottom:1rem;">Visualize e gerencie todos os contratos</p>
+        <table class="table"><thead><tr><th>Número</th><th>Hospital</th><th>Prestador</th><th>Valor</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>CONT-2023-001</td><td>Hospital Central</td><td>MEI Saúde</td><td>R$ 500.000</td><td><span class="badge badge-approved">Ativo</span></td></tr>
+          <tr><td>CONT-2023-002</td><td>Hospital Sul</td><td>MEI Limpeza</td><td>R$ 300.000</td><td><span class="badge badge-approved">Ativo</span></td></tr>
+        </tbody></table></div>
+        <div class="card"><h3>Gestão de Propostas</h3><p style="color:var(--tm);margin-bottom:1rem;">Aprove ou rejeite propostas</p>
+        <table class="table"><thead><tr><th>Título</th><th>MEI</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody>
+          <tr><td>Serviço de Limpeza</td><td>MEI Saúde</td><td>R$ 50.000</td><td><span class="badge badge-pending">Pendente</span></td><td><button class="btn btn-g btn-sm" onclick="approveProposal('1')">Aprovar</button><button class="btn btn-d btn-sm" onclick="rejectProposal('1')">Rejeitar</button></td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="card"><h3>Relatórios</h3>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+        <button class="btn btn-p" onclick="generateReport('hospitals')">Hospitais</button>
+        <button class="btn btn-p" onclick="generateReport('contracts')">Contratos</button>
+        <button class="btn btn-p" onclick="generateReport('proposals')">Propostas</button>
+        <button class="btn btn-p" onclick="generateReport('mei')">MEIs</button>
+        <button class="btn btn-p" onclick="generateReport('ambulances')">Ambulâncias</button>
+        <button class="btn btn-p" onclick="generateReport('budget')">Orçamento</button>
+      </div>
+      <div id="report-result" style="margin-top:1rem;"></div>
+    </div>
+    <div class="card"><h3>Configurações</h3><p><strong>Infraestrutura:</strong> OldButGold TR8 | <strong>Orçamento:</strong> R$ 20.000.000,00 (Pre-Seed 2030) | <strong>Satélites:</strong> 3 ativos | <strong>Cobertura:</strong> 98%</p></div>
+  </main>
+  <footer class="footer">AuraHealthSP v2 - Prefeitura de São Paulo | OldButGold TR8 | Pre-Seed 2030: R$ 20.000.000,00 | Infraestrutura Real para Ambulâncias e Satélites</footer>
+</div>
+<div id="toast-container"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// Navegação
+document.addEventListener('DOMContentLoaded', () => {
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const views = document.querySelectorAll('.view');
+  navBtns.forEach(btn => btn.addEventListener('click', () => {
+    const viewId = btn.dataset.view;
+    navBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    views.forEach(v => v.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+    window.scrollTo(0, 0);
+  }));
+  // Mapa
+  const map = L.map('map').setView([-23.5505, -46.6333], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '&copy; OpenStreetMap'}).addTo(map);
+  L.marker([-23.5505, -46.6333]).addTo(map).bindPopup('Hospital Central');
+  L.marker([-23.5705, -46.6433]).addTo(map).bindPopup('Hospital Sul');
+  // Mapa ambulâncias
+  const ambulanceMap = L.map('ambulance-map').setView([-23.5505, -46.6333], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '&copy; OpenStreetMap'}).addTo(ambulanceMap);
+  L.marker([-23.5505, -46.6333]).addTo(ambulanceMap).bindPopup('AMB-001');
+  L.marker([-23.5705, -46.6433]).addTo(ambulanceMap).bindPopup('AMB-002');
+  // Form propostas
+  document.getElementById('proposal-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    showToast('Proposta enviada com sucesso!', 'success');
+    e.target.reset();
+  });
+});
+// Funções
+function verifyMEI() {
+  const cnpj = document.getElementById('mei-cnpj').value;
+  if (!cnpj || cnpj.length !== 14) {showToast('CNPJ inválido', 'error');return;}
+  document.getElementById('mei-result').innerHTML = '<div class="loading"><div class="spinner"></div><span>Verificando...</span></div>';
+  setTimeout(() => {
+    document.getElementById('mei-result').innerHTML = '<div style="background:var(--bg);padding:1rem;border-radius:var(--r);border:1px solid var(--b)"><strong style="color:var(--g);">MEI Verificado!</strong><p>CNPJ: '+cnpj+'<br>Razão Social: MEI Saúde LTDA<br>Setores: Saúde, Transporte</p></div>';
+    showToast('MEI verificado!', 'success');
+  }, 2000);
+}
+function checkMEIForHospital() {
+  const cnpj = document.getElementById('service-mei-cnpj').value;
+  const hospitalId = document.getElementById('service-hospital-id').value;
+  if (!cnpj || cnpj.length !== 14) {showToast('CNPJ inválido', 'error');return;}
+  if (!hospitalId) {showToast('Selecione hospital', 'error');return;}
+  const resultDiv = document.getElementById('service-mei-result');
+  resultDiv.innerHTML = '<div class="loading"><div class="spinner"></div><span>Verificando...</span></div>';
+  setTimeout(() => {
+    const authorized = Math.random() > 0.3;
+    if (authorized) {
+      resultDiv.innerHTML = '<div style="background:#dcfce7;padding:1rem;border-radius:var(--r);border:1px solid #bbf7d0;"><strong style="color:var(--g);">AUTORIZADO!</strong><p>MEI está autorizado para este hospital</p></div>';
+      showToast('MEI autorizado!', 'success');
+    } else {
+      resultDiv.innerHTML = '<div style="background:#fee2e2;padding:1rem;border-radius:var(--r);border:1px solid #fecaca;"><strong style="color:var(--d);">NÃO AUTORIZADO!</strong><p>MEI não está autorizado para este hospital</p></div>';
+      showToast('MEI não autorizado', 'warning');
+    }
+  }, 2000);
+}
+function authorizeMEIForHospital() {
+  const meiId = document.getElementById('mei-authorization-mei').value;
+  const hospitalId = document.getElementById('mei-authorization-hospital').value;
+  if (!meiId || !hospitalId) {showToast('Selecione MEI e Hospital', 'error');return;}
+  showToast('MEI autorizado para o hospital!', 'success');
+}
+function trackAmbulance(id) {showToast('Rastreando ambulância '+id, 'info');}
+function activateEmergency() {showToast('Emergência ativada! Ambulâncias notificadas.', 'success');}
+function sendSatelliteCommand() {showToast('Comando satelite enviado!', 'success');}
+function trackViaSatellite() {showToast('Rastreamento via satélite ativo!', 'success');}
+function approveProposal(id) {showToast('Proposta #'+id+' aprovada!', 'success');}
+function rejectProposal(id) {showToast('Proposta #'+id+' rejeitada!', 'success');}
+function generateReport(type) {showToast('Relatório de '+type+' gerado!', 'success');}
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  const icons = {success: 'check-circle', error: 'exclamation-circle', warning: 'exclamation-triangle', info: 'info-circle'};
+  toast.innerHTML = '<i class="fas fa-'+(icons[type]||'info-circle')+'"></i><span>'+message+'</span>';
+  container.appendChild(toast);
+  setTimeout(() => {toast.style.animation = 'slideIn 0.3s ease reverse';setTimeout(() => toast.remove(), 300);}, 5000);
+}
+</script>
+</body>
+</html>

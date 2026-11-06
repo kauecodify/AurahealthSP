@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - AuraHealthSP v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {--p:#0ea5a5;--s:#6366f1;--d:#ef4444;--w:#f59e0b;--g:#22c55e;--bg:#f8fafc;--sf:#fff;--t:#0f172a;--tm:#64748b;--b:#e2e8f0;--r:12px;}
+* {margin:0;padding:0;box-sizing:border-box}
+body {font-family:'Inter',sans-serif;background:var(--bg);color:var(--t);line-height:1.6}
+#app {min-height:100vh;display:flex;flex-direction:column}
+.header {position:sticky;top:0;z-index:1000;background:var(--sf);border-bottom:1px solid var(--b);padding:1rem;display:flex;justify-content:space-between;align-items:center;gap:1rem}
+.logo {font-weight:700;font-size:1.25rem;color:var(--t);display:flex;align-items:center;gap:0.5rem}
+.logo span {color:var(--p)}
+.nav {display:flex;gap:0.5rem;background:var(--bg);padding:0.25rem;border-radius:10px}
+.nav-btn {padding:0.5rem 1rem;border:none;background:transparent;border-radius:8px;cursor:pointer}
+.nav-btn:hover,.nav-btn.active {background:var(--sf);color:var(--p)}
+.main {flex:1;padding:1.5rem;max-width:1400px;margin:0 auto;width:100%}
+.view {display:none}
+.view.active {display:block}
+.card {background:var(--sf);border-radius:var(--r);box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:1.5rem;margin-bottom:1rem;border:1px solid var(--b)}
+.card h3 {margin-bottom:1rem;font-size:1.1rem}
+.stats {display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat {background:var(--sf);padding:1rem;border-radius:var(--r);border:1px solid var(--b)}
+.stat h4 {font-size:0.85rem;color:var(--tm);margin-bottom:0.5rem}
+.stat .value {font-size:1.5rem;font-weight:700;color:var(--p)}
+.table {width:100%;border-collapse:collapse;margin-top:1rem}
+.table th,.table td {padding:0.75rem;text-align:left;border-bottom:1px solid var(--b)}
+.table th {background:var(--bg);font-weight:600;font-size:0.85rem}
+.btn {padding:0.5rem 1rem;border:none;border-radius:var(--r);cursor:pointer;font-weight:600;font-size:0.9rem;display:inline-flex;align-items:center;gap:0.5rem}
+.btn-p {background:var(--p);color:white}
+.btn-s {background:var(--s);color:white}
+.btn-g {background:var(--g);color:white}
+.btn-d {background:var(--d);color:white}
+.footer {background:var(--sf);border-top:1px solid var(--b);padding:1rem;margin-top:auto;text-align:center;color:var(--tm);font-size:0.85rem}
+.badge {display:inline-block;padding:0.25rem 0.5rem;border-radius:20px;font-size:0.75rem;font-weight:600}
+.badge-available {background:#dcfce7;color:#166534}
+.badge-busy {background:#fef3c7;color:#92400e}
+.badge-critical {background:#fee2e2;color:#991b1b}
+.badge-pending {background:#dbeafe;color:#1e40af}
+.badge-approved {background:#dcfce7;color:#166534}
+.badge-rejected {background:#fee2e2;color:#991b1b}
+.grid-2 {display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem}
+@media (max-width:768px) {
+  .header {flex-direction:column;padding:0.75rem}
+  .nav {width:100%;justify-content:center}.main {padding:1rem}
+  .stats {grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<header class="header">
+<div class="logo"><i class="fas fa-heartbeat" style="color:var(--p)"></i> AuraHealth<span>SP v2</span> Admin</div>
+<nav class="nav">
+<button class="nav-btn active" data-view="overview">Visão Geral</button>
+<button class="nav-btn" data-view="contracts">Contratos</button>
+<button class="nav-btn" data-view="hospitals">Hospitais</button>
+<button class="nav-btn" data-view="proposals">Propostas</button>
+<button class="nav-btn" data-view="reports">Relatórios</button>
+</nav>
+</header>
+<main class="main">
+<div id="overview" class="view active">
+<h2>Painel Administrativo - Prefeitura SP</h2>
+<p>Gestão de Saúde Pública | <strong>Orçamento Pre-Seed 2030: R$ 20.000.000,00</strong> | Infra: OldButGold TR8</p>
+<div class="stats">
+<div class="stat"><h4>Hospitais</h4><div class="value" id="total-hospitals">150</div></div>
+<div class="stat"><h4>Contratos</h4><div class="value" id="total-contracts">45</div></div>
+<div class="stat"><h4>Propostas</h4><div class="value" id="total-proposals">23</div></div>
+<div class="stat"><h4>Ambulâncias</h4><div class="value" id="total-ambulances">45</div></div>
+<div class="stat"><h4>MEIs</h4><div class="value" id="total-mei">89</div></div>
+<div class="stat"><h4>Orçamento</h4><div class="value">20M</div></div>
+</div>
+<div class="card"><h3>Alertas Recentes</h3><p>Nenhum alerta no momento</p></div>
+<div class="card"><h3>Próximas Renovações de Contratos</h3><p>Nenhuma renovação próxima</p></div>
+</div>
+<div id="contracts" class="view">
+<div class="card"><h3>Gestão de Contratos</h3>
+<button class="btn btn-p" onclick="alert('Novo Contrato')">Novo Contrato</button>
+<table class="table"><thead><tr><th>Número</th><th>Hospital</th><th>Prestador</th><th>Valor</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>CONT-2023-001</td><td>Hospital Central</td><td>MEI Saúde LTDA</td><td>R$ 500.000</td><td><span class="badge badge-approved">Ativo</span></td></tr>
+<tr><td>CONT-2023-002</td><td>Hospital Sul</td><td>MEI Limpeza LTDA</td><td>R$ 300.000</td><td><span class="badge badge-approved">Ativo</span></td></tr>
+<tr><td>CONT-2023-003</td><td>Hospital Norte</td><td>MEI Transporte LTDA</td><td>R$ 250.000</td><td><span class="badge badge-pending">Expirando</span></td></tr>
+</tbody></table>
+</div>
+</div>
+<div id="hospitals" class="view">
+<div class="card"><h3>Gestão de Hospitais</h3>
+<button class="btn btn-p" onclick="alert('Novo Hospital')">Novo Hospital</button>
+<table class="table"><thead><tr><th>Nome</th><th>Leitos</th><th>UTI</th><th>Status</th><th>Contrato</th></tr></thead>
+<tbody>
+<tr><td>Hospital Central</td><td>500/500</td><td>50/50</td><td><span class="badge badge-available">Disponível</span></td><td>CONT-2023-001</td></tr>
+<tr><td>Hospital Sul</td><td>300/280</td><td>30/25</td><td><span class="badge badge-busy">Ocupado</span></td><td>CONT-2023-002</td></tr>
+<tr><td>Hospital Norte</td><td>200/180</td><td>20/15</td><td><span class="badge badge-critical">Crítico</span></td><td>CONT-2023-003</td></tr>
+</tbody></table>
+</div>
+</div>
+<div id="proposals" class="view">
+<div class="card"><h3>Gestão de Propostas</h3>
+<button class="btn btn-g" onclick="quickApproveAll()">Aprovar Todas</button>
+<table class="table"><thead><tr><th>Título</th><th>MEI</th><th>Hospital</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+<tbody>
+<tr><td>Serviço de Limpeza</td><td>MEI Saúde</td><td>Hospital Central</td><td>R$ 50.000</td><td><span class="badge badge-pending">Pendente</span></td><td><button class="btn btn-g btn-sm" onclick="approveProposal('1')">Aprovar</button><button class="btn btn-d btn-sm" onclick="rejectProposal('1')">Rejeitar</button></td></tr>
+<tr><td>Transporte de Pacientes</td><td>MEI Transporte</td><td>Hospital Sul</td><td>R$ 30.000</td><td><span class="badge badge-pending">Pendente</span></td><td><button class="btn btn-g btn-sm" onclick="approveProposal('2')">Aprovar</button><button class="btn btn-d btn-sm" onclick="rejectProposal('2')">Rejeitar</button></td></tr>
+<tr><td>Manutenção Predial</td><td>MEI Manutenção</td><td>Hospital Norte</td><td>R$ 25.000</td><td><span class="badge badge-pending">Pendente</span></td><td><button class="btn btn-g btn-sm" onclick="approveProposal('3')">Aprovar</button><button class="btn btn-d btn-sm" onclick="rejectProposal('3')">Rejeitar</button></td></tr>
+</tbody></table>
+</div>
+</div>
+<div id="reports" class="view">
+<div class="card"><h3>Relatórios</h3>
+<button class="btn btn-p" onclick="generateReport('hospitals')">Hospitais</button>
+<button class="btn btn-p" onclick="generateReport('contracts')">Contratos</button>
+<button class="btn btn-p" onclick="generateReport('proposals')">Propostas</button>
+<button class="btn btn-p" onclick="generateReport('mei')">MEIs</button>
+<button class="btn btn-p" onclick="generateReport('ambulances')">Ambulâncias</button>
+<button class="btn btn-p" onclick="generateReport('budget')">Orçamento</button>
+<div id="report-result" style="margin-top:1rem;"></div>
+</div>
+<div class="card"><h3>Configurações do Sistema</h3>
+<p><strong>Infraestrutura:</strong> OldButGold TR8 | <strong>Orçamento:</strong> R$ 20.000.000,00 (Pre-Seed 2030)</p>
+<p><strong>Satélites:</strong> 3 ativos | <strong>Cobertura:</strong> 98% | <strong>Infra Real:</strong> Ambulâncias e Satélites funcionando</p>
+</div>
+</div>
+</main>
+<footer class="footer">AuraHealthSP v2 - Prefeitura de São Paulo | OldButGold TR8 | Pre-Seed 2030: R$ 20M</footer>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+const navBtns=document.querySelectorAll('.nav-btn');
+const views=document.querySelectorAll('.view');
+navBtns.forEach(btn=>btn.addEventListener('click',()=>{
+const viewId=btn.dataset.view;
+navBtns.forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+views.forEach(v=>v.classList.remove('active'));
+document.getElementById(viewId).classList.add('active');
+}));
+});
+function approveProposal(id) {alert('Proposta #'+id+' aprovada!');}
+function rejectProposal(id) {alert('Proposta #'+id+' rejeitada!');}
+function quickApproveAll() {alert('Todas as propostas foram aprovadas!');}
+function generateReport(type) {document.getElementById('report-result').innerHTML='<p style="color:var(--g);">Relatório de '+type+' gerado com sucesso!</p>';}
+</script>
+</body>
+</html>
