@@ -1026,8 +1026,6 @@ npm run lint
 
 ## \ud83d\udcc4 Licenca
 
-MIT License - Copyright (c) 2024 AuraHealthSP Team
-
 ---
 
 ## \ud83c\udfc6 Agradecimentos
