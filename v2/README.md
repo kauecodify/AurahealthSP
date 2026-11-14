@@ -694,7 +694,7 @@ curl -X POST http://localhost:3002/api/v2/proposals \
 
 ## 📄 Licença
 
-MIT License - Copyright (c) 2024 AuraHealthSP Team
+aqui...
 
 ---
 
