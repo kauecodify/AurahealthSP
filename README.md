@@ -150,3 +150,5 @@ LGPD: Todos os acessos ao histórico do paciente são registrados em log de audi
 RNDS: A estrutura de dados segue os padrões de interoperabilidade definidos pela Rede Nacional de Dados em Saúde.
 
 RBAC (Role-Based Access Control): Separação rígida de permissões entre medico, gestor_unidade e admin_secretaria.
+
+®
