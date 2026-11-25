@@ -1,154 +1,162 @@
-<img width="200" height="200" alt="prefeitura-sp" src="https://github.com/user-attachments/assets/3779e7f6-c8b7-4c39-88d4-22a1b0dd4e60" />
+# AuraHealthSP
 
-# AuraHealthSP - BRAZIL: Módulo de Interoperabilidade e Histórico Longitudinal
+> **Camada de leitura não-destrutiva sobre o PEP legado — histórico clínico unificado via RNDS/CROSS, com compliance LGPD e foco em eficiência operacional institucional.**
 
-> **Conectando a jornada do paciente com conformidade RNDS e LGPD, reduzindo retrabalho clínico e custos evitáveis na gestão pública de saúde.**
-
+[![Next.js 14](https://img.shields.io/badge/Next.js-14%20App%20Router-black.svg)](https://nextjs.org/)
+[![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8.svg)](https://tailwindcss.com/)
+[![LGPD](https://img.shields.io/badge/Compliance-LGPD%20%7C%20RNDS%20%7C%20CFM%202.217%2F2018-orange.svg)](#compliance-e-%C3%A9tica)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-blue.svg)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
-[![LGPD](https://img.shields.io/badge/Compliance-LGPD%20%26%20RNDS-orange.svg)](#)
+
+🎬 **[VER DEMONSTRAÇÃO EM VÍDEO DO FLUXO - 1 MIN]** *(placeholder — substituir pelo link do Loom/YouTube antes da banca)*
 
 ---
 
-## Visão Geral
+## O que é
 
-O **AuraHealthSP** é uma solução B2G/B2B focada em resolver a fragmentação da jornada de saúde. Diferente de sistemas que tentam substituir o prontuário eletrônico existente, o AuraHealthSP atua como uma **camada de conexão leve e não-destrutiva**. 
+O AuraHealthSP **não substitui** o Prontuário Eletrônico do Paciente (PEP) nem o CROSS. Ele funciona como uma **camada de visualização unificada em modo leitura** sobre esses sistemas: mediante consentimento do paciente, agrega em uma única linha do tempo o que já existe sobre aquela pessoa — consultas, exames e regulações — sem tocar no PEP local.
 
-Mediante consentimento explícito do paciente, o módulo agrega o histórico longitudinal (exames, alergias, consultas anteriores) em um painel unificado para o médico, integrando-se via API aos sistemas legados e à Rede Nacional de Dados em Saúde (RNDS).
+O médico continua trabalhando no sistema que já usa. O AuraHealthSP reduz o retrabalho de anamnese e evita exames duplicados, e **essa eficiência operacional é a métrica de valor mensurável** que justifica o fee SaaS pago pela instituição.
 
-**Resultado validado em pilotos:** Redução de 10 a 15 minutos no tempo de anamnese e diminuição significativa de exames duplicados.
-
----
-
-## O Problema que Resolvemos
-
-1. **Retrabalho Clínico:** Médicos perdem tempo repetindo anamneses e solicitando exames que o paciente já possui, mas que estão em outro sistema.
-2. **Decisão com Informação Incompleta:** A falta de histórico longitudinal gera custo evitável e riscos à segurança do paciente.
-3. **Fricção de Integração:** Secretarias de saúde e clínicas não podem parar suas operações para trocar de sistema (ERP/Prontuário) apenas para ganhar interoperabilidade.
+> **Prova técnica de viabilidade:** a integração com as APIs da **RNDS (Conecte SUS)** foi demonstrada com sucesso em **3 dias de desenvolvimento** — baixa complexidade de integração ao ecossistema SUS.
 
 ---
 
-## A Solução (Foco do MVP v2)
+## Demonstração (MVP v2.1 - Semana 4)
 
-O MVP atual (versão 2) foi desenhado para validação de mercado e tração inicial, focando estritamente em:
+Fluxo defensável para banca de venture building:
 
-- **Dashboard Unificado do Médico:** Visualização rápida e organizada do histórico do paciente.
-- **Gestão de Consentimento (LGPD):** Fluxo claro de autorização do paciente para compartilhamento de dados.
-- **Integração Não-Destrutiva:** Conectores de API que leem dados de prontuários legados sem exigir a substituição do software atual da unidade de saúde.
-- **Métricas de ROI em Tempo Real:** Painel administrativo que quantifica "tempo clínico recuperado" e "exames evitados" para o gestor público.
+1. **Busca por CNS** com validação oficial do check digit (15 dígitos, prefixos 1/2/7/8/9).
+2. **Modal de Consentimento LGPD** obrigatório antes da primeira busca — simula o fluxo de autorização do titular (Arts. 7º e 11, LGPD).
+3. **Consulta à API RNDS** via módulo whitelabel (`RNDS/`) — em modo mock para demo congelada, ou real (FHIR R4) quando configurado.
+4. **Dashboard unificado**: dados demográficos + alertas de alergia (esquerda) e linha do tempo RNDS/CROSS (direita), preservando a interface do PEP original.
+5. **Widget de ROI Operacional** fixo no topo: "Tempo médio economizado nesta sessão" e "Exames duplicados evitados".
 
-> *Nota: Funcionalidades como rastreamento logístico, integração MEI e módulos de blockchain fazem parte do roadmap de longo prazo e não estão incluídas neste MVP de validação de interoperabilidade.*
+Header do dashboard: **"Modo de Visualização Unificada - Leitura via RNDS/CROSS - Operação não-destrutiva ao PEP local"**.
 
----
+Paciente mockado realista: `Maria Aparecida dos Santos` (CNS `245.0000.0000.0003`), alergias (Penicilina - grave, alerta vermelho suave), condições crônicas (DM2, HAS) e as últimas 3 interações clínicas:
 
-## Arquitetura e Tecnologias
-
-O backend foi construído para ser leve, seguro e escalável, seguindo boas práticas de desenvolvimento.
-
-| Componente | Tecnologia | Descrição |
+| Data | Interação | Origem |
 | --- | --- | --- |
-| **Runtime** | Node.js (v18+) | Ambiente de execução assíncrono e performático |
-| **Framework** | Express.js | API RESTful e gerenciamento de rotas |
-| **Banco de Dados** | PostgreSQL | Armazenamento relacional de dados de saúde e auditoria |
-| **Cache** | Redis | Otimização de consultas frequentes e sessões |
-| **Infraestrutura** | Docker & Docker Compose | Containerização para deploy consistente e replicável |
-| **Segurança** | JWT + bcrypt | Autenticação segura e criptografia de senhas |
+| 2024-11-12 | Consulta em UBS | `RNDS - Conecte SUS` |
+| 2024-10-28 | Exame laboratorial (HbA1c) | `SISLAB - Rede Laboratorial` |
+| 2024-09-05 | Regulação estadual (consulta cardiologia autorizada) | `CROSS - Regulação Estadual SP` |
 
 ---
 
-## 📂 Estrutura do Projeto (v2)
+## Arquitetura
 
-```text
-aurahealthsp/
-├── v2/                     # Diretório principal do MVP validado
-│   ├── api/
-│   │   └── server.js       # Servidor principal (Express + Configurações)
-│   ├── controllers/        # Lógica de negócio (Auth, Patient History, Dashboard)
-│   ├── models/             # Modelos de dados (Knex/ORM)
-│   ├── routes/             # Definição dos endpoints da API
-│   ├── middleware/         # Autenticação (JWT), Logging e Tratamento de Erros
-│   ├── config/             # Variáveis de ambiente e conexões (DB, Redis)
-│   └── views/              # Templates do Dashboard (Admin e Médico)
-├── infra/
-│   └── docker/             # Configuração de orquestração (docker-compose.yml)
-├── .env.example            # Modelo de variáveis de ambiente
-└── README.md
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Next.js 14 (App Router) + Tailwind CSS                     │
+│  app/page.tsx → Dashboard (client components)               │
+│    • Busca CNS + validação        • Widget ROI Operacional  │
+│    • Modal Consentimento LGPD     • Painéis + timeline      │
+└──────────────┬──────────────────────────────────────────────┘
+               │ POST /api/consent · POST /api/history
+┌──────────────▼──────────────────────────────────────────────┐
+│  RNDS/ — Camada whitelabel de integração (leitura GET)      │
+│  ├── conectesus.ts    RNDS/Conecte SUS (FHIR R4)            │
+│  ├── cross-sp.ts      CROSS Regulação Estadual SP           │
+│  ├── esus-aps.ts      e-SUS APS (PEP ambulatorial)          │
+│  ├── sislab.ts        SISLAB / rede laboratorial            │
+│  └── hospital-fhir.ts Emergência/hospitalar (roadmap v2.2)  │
+└──────────────┬──────────────────────────────────────────────┘
+               │ agregação normalizada (Patient + Timeline)
+┌──────────────▼──────────────────────────────────────────────┐
+│  PEP legado / CROSS / RNDS  (fontes — nunca substituídas)   │
+└─────────────────────────────────────────────────────────────┘
+```
 
-````
+**Posicionamento:** o sistema é *consumer* de interoperabilidade, não *source of truth*. Nenhum adaptador grava dados; todos operam em leitura, com `X-Consent-Id` no header de cada requisição para auditoria LGPD.
 
-# Como Rodar o Projeto
+Cada adaptador é **whitelabel**: clínicas, operadoras e consórcios reutilizam a mesma camada apenas configurando `baseUrl`, `apiKey` e `orgSlug` (ver `.env.example`). Sem credenciais, cada adaptador cai em modo mock (`lib/mock-rnds-data.ts`), permitindo demonstração estável.
 
-Pré-requisitos
+---
 
-Node.js >= 18.0.0
+## Compliance e Ética
 
-Docker e Docker Compose (Recomendado)
+### Modelo de receita (LGPD + CFM + improbidade)
 
-Instalação e Execução (via Docker)
+- **Fee SaaS institucional por profissional ativo**, pago pela clínica/operadora/secretaria.
+- **Não existe success fee, comissão, bônus ou qualquer remuneração variável paga ao médico individualmente** por paciente, exame ou encaminhamento. Este modelo violaria o Código de Ética Médica (Resolução CFM nº 2.217/2018) e configuraria risco de improbidade em contratos públicos.
+- A métrica de valor exibida no produto é **Eficiência Operacional da Clínica/Operadora**: "Minutos de anamnese economizados" e "Exames duplicados evitados" — resultado institucional, não incentivo de conduta médica.
 
-Clone o repositório:
+### LGPD
 
-bash
-   git clone https://github.com/kauecodify/AurahealthSP.git
-   cd AurahealthSP
+- Consentimento explícito do titular antes de qualquer consulta a dados (modal obrigatório, token com rotação de 15 minutos).
+- Base legal: Art. 7º, I e Art. 11, I da Lei nº 13.709/2018.
+- Finalidade restrita ao atendimento clínico da sessão; logs de auditoria imutáveis; o titular pode revogar a qualquer momento.
 
-Configure as variáveis de ambiente:
+### RNDS e CFM
 
-````
-bash
-   cp .env.example .env
+- Estrutura de dados aderente aos perfis FHIR R4 da Rede Nacional de Dados em Saúde.
+- Aderência às diretrizes do CFM para interoperabilidade (o sistema não é prontuário e não registra ato médico).
 
-   # Edite o arquivo .env com suas credenciais locais
-````
+### Transparência
 
-Inicie os serviços (API, PostgreSQL e Redis):
+- **[STATUS_E_ROADMAP.md](./STATUS_E_ROADMAP.md)** — matriz **VALIDADO / EM ANDAMENTO / PLANEJADO** com o roadmap da LOI (v2.1, v2.2, v3.0), separando o executado do planejado.
 
-````
-bash
-   docker-compose -f infra/docker/docker-compose.yml up -d --build
-````
+---
 
-Acesse o sistema:
+## Roadmap
 
-````
-API Health Check: http://localhost:3002/health
+Consulte a matriz completa em **[STATUS_E_ROADMAP.md](./STATUS_E_ROADMAP.md)**:
 
-Dashboard Admin: http://localhost:3002/admin
-````
+- **v2.1 (Q1 2025)** — Integração com SUS · Mobile app (React Native) · IA para predição de demanda · Blockchain para auditoria.
+- **v2.2 (Q2 2025)** — Integração com sistemas de emergência · Dashboard de análise de dados · API GraphQL · Webhooks para notificações.
+- **v3.0 (2026)** — Expansão para outros estados · Integração nacional · Sistema de inteligência artificial · Automatização completa.
 
-# 🔌 Principais Endpoints da API (v2)
+---
 
-# Autenticação
+## Como rodar o MVP (Next.js 14)
 
-````
-POST /api/v2/auth/login - Autenticação de profissionais e gestores.
+```bash
+npm install
+cp .env.example .env.local   # opcional: credenciais whitelabel; sem elas roda em modo mock
+npm run dev                  # http://localhost:3000
+```
 
-GET /api/v2/auth/me - Recupera dados do usuário logado.
-````
+Build de produção:
 
-# Histórico do Paciente (Core)
+```bash
+npm run build && npm start
+```
 
-````
-GET /api/v2/patients/:cpf/history - Retorna o histórico longitudinal consolidado (requer consentimento válido).
+## API do MVP
 
-POST /api/v2/patients/:cpf/consent - Registra o consentimento LGPD do paciente para compartilhamento de dados.
-````
+| Endpoint | Descrição |
+| --- | --- |
+| `POST /api/consent` | Registra consentimento LGPD (valida CNS) e devolve token de auditoria |
+| `POST /api/history` | Consulta consolidada RNDS/CROSS (exige `consentId` válido) |
 
-# Dashboard e Métricas (Gestão)
+## Estrutura do MVP
 
-````
-GET /api/v2/hospitals/:id/roi-metrics - Retorna dados de tempo economizado e custos evitados na unidade.
+```
+├── RNDS/                          # Camada whitelabel (5 adaptadores + registry)
+├── app/
+│   ├── api/{consent,history}/     # Route handlers
+│   ├── layout.tsx · page.tsx      # App Router
+│   └── globals.css
+├── components/                    # Dashboard, busca CNS, modal LGPD, ROI, painéis
+├── lib/
+│   ├── mock-rnds-data.ts          # Resposta RNDS realista (mock) + baseline ROI
+│   ├── cns.ts                     # Validação oficial de CNS
+│   └── clinical-types.ts
+├── STATUS_E_ROADMAP.md            # Transparência VALIDADO/EM ANDAMENTO/PLANEJADO
+└── .env.example
+```
 
-GET /api/v2/admin/dashboard - Visão consolidada para gestores de secretaria/consórcio.
-````
+## Sistemas legados do repositório (contexto histórico)
 
-# Segurança e Conformidade
+Diretórios de iterações anteriores, mantidos como referência e fora do escopo do MVP atual:
 
-LGPD: Todos os acessos ao histórico do paciente são registrados em log de auditoria imutável e exigem token de consentimento válido.
+- `v2/` — API Express (gestão hospitalar/MEI/propostas) da iteração anterior do sistema.
+- `backend/`, `frontend/`, `index.html`, `ambulance.html`, `dataReceived.html`, `infra/docker`, `makefile` — protótipos e landing pages das primeiras validações.
 
-RNDS: A estrutura de dados segue os padrões de interoperabilidade definidos pela Rede Nacional de Dados em Saúde.
+O produto ativo perante a banca é o MVP Next.js 14 descrito neste README.
 
-RBAC (Role-Based Access Control): Separação rígida de permissões entre medico, gestor_unidade e admin_secretaria.
+---
 
-®
+## Licença
+
+MIT — vide `v2/package.json` para a versão da iteração anterior.
